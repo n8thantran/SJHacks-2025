@@ -71,10 +71,6 @@ export default function Sidebar() {
   
   return (
     <aside className="w-64 bg-slate-800 border-r border-slate-700 h-full py-6 hidden md:block">
-      <div className="flex items-center px-6 mb-8">
-        <div className="bg-blue-500 text-white h-8 w-8 rounded-md flex items-center justify-center font-bold mr-2">T</div>
-        <h1 className="text-xl font-bold">TrafficO</h1>
-      </div>
       
       <div className="px-4 mb-6">
         <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">

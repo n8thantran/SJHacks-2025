@@ -103,6 +103,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
     latitude: number;
     content: React.ReactNode;
   } | null>(null);
+  const [hoveredStreetId, setHoveredStreetId] = useState<number | null>(null);
 
   // Client-side only operation
   useEffect(() => {
@@ -112,11 +113,66 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
   // Get the native Mapbox instance
   const onMapLoad = useCallback((evt: { target: MapboxMap }) => {
     mapRef.current = evt.target;
+    
+    // Add hover interactivity for streets
+    const map = evt.target;
+    
+    // Add event for when mouse enters a street
+    map.on('mouseenter', 'street-lines', (e) => {
+      if (e.features && e.features.length > 0) {
+        map.getCanvas().style.cursor = 'pointer';
+        const feature = e.features[0];
+        setHoveredStreetId(feature.properties?.id);
+      }
+    });
+    
+    // Remove hover when mouse leaves
+    map.on('mouseleave', 'street-lines', () => {
+      map.getCanvas().style.cursor = '';
+      setHoveredStreetId(null);
+    });
+    
+    // Click on street to show popup
+    map.on('click', 'street-lines', (e) => {
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        const coordinates = e.lngLat;
+        
+        // Get the midpoint of the line for popup placement
+        setPopupInfo({
+          longitude: coordinates.lng,
+          latitude: coordinates.lat,
+          content: (
+            <div className="text-black">
+              <h3 className="font-bold">{feature.properties?.name}</h3>
+              <p>Status: {feature.properties?.status}</p>
+              <p>Congestion: {(feature.properties?.congestion * 100).toFixed(0)}%</p>
+            </div>
+          )
+        });
+      }
+    });
   }, []);
 
   if (!isClient) {
     return null;
   }
+
+  // Create street hover layer style
+  const streetHoverLayerStyle: LayerProps = {
+    id: 'street-lines-hover',
+    type: 'line',
+    layout: {
+      'line-join': 'round',
+      'line-cap': 'round'
+    },
+    paint: {
+      'line-color': ['get', 'color'],
+      'line-width': 6,
+      'line-opacity': 1
+    },
+    filter: ['==', 'id', hoveredStreetId || '']
+  };
 
   return (
     <MapboxContainer>
@@ -132,6 +188,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
         style={{ width: '100%', height: '100%', borderRadius: '0.5rem' }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         onLoad={onMapLoad}
+        interactiveLayerIds={['street-lines']}
       >
         {/* Map controller for following emergency vehicles */}
         {followEmergency && emergencyVehicles.length > 0 && (
@@ -145,6 +202,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
         {/* Render street segments as a line layer */}
         <Source id="streets-source" type="geojson" data={streetLayersData}>
           <Layer {...streetLayerStyle} />
+          <Layer {...streetHoverLayerStyle} />
         </Source>
 
         {/* Render emergency vehicles as markers */}
@@ -161,7 +219,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
                   longitude: vehicle.lng,
                   latitude: vehicle.lat,
                   content: (
-                    <div>
+                    <div className="text-black">
                       <h3 className="font-bold">Emergency Vehicle</h3>
                       <p>Type: {vehicle.type}</p>
                       <p>Speed: {vehicle.speed} mph</p>
@@ -175,7 +233,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
           </Marker>
         ))}
 
-        {/* Popup for markers */}
+        {/* Popup for markers and streets */}
         {popupInfo && (
           <Popup
             longitude={popupInfo.longitude}

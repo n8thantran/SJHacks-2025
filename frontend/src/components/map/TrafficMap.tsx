@@ -152,6 +152,15 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
         });
       }
     });
+    
+    // Close popup when clicking anywhere else on the map
+    map.on('click', (e) => {
+      // Check if the click was not on a street feature
+      const features = map.queryRenderedFeatures(e.point, { layers: ['street-lines'] });
+      if (features.length === 0) {
+        setPopupInfo(null);
+      }
+    });
   }, []);
 
   if (!isClient) {
@@ -241,6 +250,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
             anchor="bottom"
             onClose={() => setPopupInfo(null)}
             closeOnClick={false}
+            closeButton={true}
           >
             {popupInfo.content}
           </Popup>

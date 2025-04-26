@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Camera, MapPin, Clock, AlertTriangle, Search, Sliders, MoreVertical, Video, PauseCircle, RefreshCw, ChevronDown } from 'lucide-react';
+import { Camera, MapPin, AlertTriangle, Search, Sliders, MoreVertical, Video, PauseCircle, RefreshCw, ChevronDown } from 'lucide-react';
 
 // Mock camera data
 const mockCameras = [
@@ -100,7 +100,7 @@ const mockCameras = [
 ];
 
 export default function CamerasPage() {
-  const [cameras, setCameras] = useState(mockCameras);
+  const [cameras] = useState(mockCameras);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [statusFilter, setStatusFilter] = useState<string>('all');

@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import AlertPanel from '@/components/alerts/AlertPanel';
 import { MapPin, Car, Clock, AlertCircle } from 'lucide-react';
-import StatisticsPanel from '@/components/dashboard/StatisticsPanel';
 
 // Import TrafficMap component dynamically with no SSR
 const TrafficMap = dynamic(() => import('@/components/map/TrafficMap'), {

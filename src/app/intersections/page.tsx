@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Crosshair, Search, Filter, Map, ArrowUpDown, ArrowDown, ArrowUp, BarChart4, Activity, AlertTriangle, Check, Clock, RefreshCw, ChevronDown, ChevronRight, Info, Eye } from 'lucide-react';
+import { Crosshair, Search, Filter, Map, ArrowDown, ArrowUp, BarChart4, Activity, AlertTriangle, Check, Clock, RefreshCw, ChevronDown, ChevronRight, Info, Eye } from 'lucide-react';
 
 // Mock intersections data
 const mockIntersections = [
@@ -293,7 +293,7 @@ const trafficSummary = {
 };
 
 export default function IntersectionsPage() {
-  const [intersections, setIntersections] = useState(mockIntersections);
+  const [intersections] = useState(mockIntersections);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [districtFilter, setDistrictFilter] = useState('all');
@@ -302,7 +302,6 @@ export default function IntersectionsPage() {
     key: 'trafficVolume',
     direction: 'desc'
   });
-  const [selectedIntersection, setSelectedIntersection] = useState<number | null>(null);
   const [expandedView, setExpandedView] = useState<number | null>(null);
   
   // Filter intersections

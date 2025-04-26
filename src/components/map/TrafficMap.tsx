@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Map, { Marker, Popup, Layer, Source } from 'react-map-gl/mapbox';
 import type { LayerProps } from 'react-map-gl/mapbox';
-import { CarIcon, Ambulance } from 'lucide-react';
-import { getStatusColor, createCustomMarker } from '@/lib/mapbox-globals';
+import { Ambulance } from 'lucide-react';
+import { getStatusColor } from '@/lib/mapbox-globals';
 import MapboxContainer from './MapboxContainer';
 import MapController from './MapController';
 import type { Map as MapboxMap } from 'mapbox-gl';
@@ -34,10 +34,9 @@ const emergencyVehicles = [
 
 interface TrafficMapProps {
   followEmergency?: boolean;
-  highlightIntersection?: number;
 }
 
-export default function TrafficMap({ followEmergency = false, highlightIntersection }: TrafficMapProps) {
+export default function TrafficMap({ followEmergency = false }: TrafficMapProps) {
   const [isClient, setIsClient] = useState(false);
   const mapRef = useRef<MapboxMap | null>(null);
   const [popupInfo, setPopupInfo] = useState<{
@@ -71,7 +70,7 @@ export default function TrafficMap({ followEmergency = false, highlightIntersect
   }, []);
 
   // Get the native Mapbox instance
-  const onMapLoad = useCallback((evt: any) => {
+  const onMapLoad = useCallback((evt: { target: MapboxMap }) => {
     mapRef.current = evt.target;
   }, []);
 
@@ -115,7 +114,7 @@ export default function TrafficMap({ followEmergency = false, highlightIntersect
         )}
 
         {/* Render intersections as a data layer */}
-        <Source id="intersections" type="geojson" data={circleLayersData as any}>
+        <Source id="intersections" type="geojson" data={circleLayersData as GeoJSON.FeatureCollection}>
           <Layer {...circleLayer} />
         </Source>
 

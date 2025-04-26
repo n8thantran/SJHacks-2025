@@ -95,7 +95,7 @@ const mockSchedule = [
 export default function SchedulePage() {
   // State for current date, events, and view type
   const [currentDate, setCurrentDate] = useState(new Date(2025, 4, 1)); // May 2025
-  const [events, setEvents] = useState(mockSchedule);
+  const [events] = useState(mockSchedule);
   const [viewType, setViewType] = useState<'calendar' | 'list'>('calendar');
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);

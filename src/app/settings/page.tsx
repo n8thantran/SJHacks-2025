@@ -45,7 +45,7 @@ export default function SettingsPage() {
     }
   });
   
-  const handleInputChange = (section: string, field: string, value: any) => {
+  const handleInputChange = (section: string, field: string, value: string | number | boolean) => {
     setSettings({
       ...settings,
       [section]: {

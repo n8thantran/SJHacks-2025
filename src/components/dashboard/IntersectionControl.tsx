@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Cross, ChevronDown, Timer, Power, MapPin, Zap } from 'lucide-react';
+import { Cross, ChevronDown, Timer, MapPin, Zap } from 'lucide-react';
 
 // Mock intersection data
 const intersections = [

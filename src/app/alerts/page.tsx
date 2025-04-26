@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { AlertTriangle, AlertCircle, Filter, Map, Clock, Search, ArrowUpDown, ArrowUp, ArrowDown, X, CheckCircle2, Activity } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Filter, Map, Clock, Search, ArrowUp, ArrowDown, X, CheckCircle2, Activity } from 'lucide-react';
 
 // Mock alerts data
 const mockAlerts = [
@@ -169,10 +169,11 @@ export default function AlertsPage() {
     }
     
     if (sortConfig.key === 'severity') {
-      const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      type SeverityType = 'critical' | 'high' | 'medium' | 'low';
+      const severityOrder: Record<SeverityType, number> = { critical: 4, high: 3, medium: 2, low: 1 };
       return sortConfig.direction === 'asc'
-        ? severityOrder[a.severity] - severityOrder[b.severity]
-        : severityOrder[b.severity] - severityOrder[a.severity];
+        ? severityOrder[a.severity as SeverityType] - severityOrder[b.severity as SeverityType]
+        : severityOrder[b.severity as SeverityType] - severityOrder[a.severity as SeverityType];
     }
     
     return 0;

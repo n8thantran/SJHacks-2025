@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import Link from 'next/link';
@@ -22,9 +21,9 @@ interface MobileMenuProps {
 }
 
 export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
-  if (!isOpen) return null;
-  
   const pathname = usePathname();
+  
+  if (!isOpen) return null;
   
   const mainNavItems = [
     { name: 'Dashboard', icon: <Map size={20} />, href: '/' },

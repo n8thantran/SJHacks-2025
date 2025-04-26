@@ -64,8 +64,15 @@ const metricCards = [
   },
 ];
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{value: number; name: string}>;
+  label?: string;
+  unit?: string;
+}
+
 // Custom tooltip component for the charts
-const CustomTooltip = ({ active, payload, label, unit = '' }: any) => {
+const CustomTooltip = ({ active, payload, label, unit = '' }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-700 p-2 rounded border border-slate-600 text-xs">

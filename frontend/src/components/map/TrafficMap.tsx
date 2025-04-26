@@ -15,22 +15,81 @@ if (process.env.MAPBOX_ACCESS_TOKEN) {
   mapboxgl.accessToken = process.env.MAPBOX_ACCESS_TOKEN;
 }
 
-// San Jose Center coordinates
-const sanjose = { lat: 37.3382, lng: -121.8863 };
+// Downtown San Jose center coordinates
+const sanjose = { lat: 37.3352, lng: -121.8863 };
 
-// Mock intersections data
-const intersections = [
-  { id: 1, name: "1st & Santa Clara", lat: 37.3367, lng: -121.8888, status: "normal", congestion: 0.4 },
-  { id: 2, name: "Market & San Carlos", lat: 37.3299, lng: -121.8876, status: "congested", congestion: 0.8 },
-  { id: 3, name: "4th & San Fernando", lat: 37.3368, lng: -121.8851, status: "emergency", congestion: 0.5 },
-  { id: 4, name: "10th & Santa Clara", lat: 37.3397, lng: -121.8767, status: "normal", congestion: 0.3 },
-  { id: 5, name: "Monterey & Curtner", lat: 37.2909, lng: -121.8539, status: "normal", congestion: 0.2 },
+// Street segments for perfect cross shape
+const streetSegments = [
+  {
+    id: 1,
+    name: "South-4th Street",
+    status: "congested",
+    congestion: 0.8,
+    coordinates: [
+      [-121.886053, 37.335816], // West end
+      [-121.882917, 37.331601]  // East end
+    ]
+  },
+  {
+    id: 2,
+    name: "San Fernando Street",
+    status: "emergency",
+    congestion: 0.5,
+    coordinates: [
+      [-121.879953, 37.338838], // North end
+      [-121.886015, 37.335857]  // South end
+    ]
+  },
+  {
+    id: 3,
+    name: "North-South Street 2",
+    status: "normal",
+    congestion: 0.4,
+    coordinates: [
+      [-121.888107, 37.334828], // North end
+      [-121.886103, 37.332135]  // South end
+    ]
+  }
 ];
 
 // Mock emergency vehicle data
 const emergencyVehicles = [
   { id: 1, lat: 37.3350, lng: -121.8860, type: "ambulance", heading: 45, speed: 45 },
 ];
+
+// Create street segments layer data
+const streetLayersData = {
+  type: 'FeatureCollection',
+  features: streetSegments.map(segment => ({
+    type: 'Feature',
+    properties: {
+      id: segment.id,
+      name: segment.name,
+      status: segment.status,
+      congestion: segment.congestion,
+      color: getStatusColor(segment.status),
+    },
+    geometry: {
+      type: 'LineString',
+      coordinates: segment.coordinates
+    },
+  })),
+} as GeoJSON.FeatureCollection;
+
+// Create street line layer style
+const streetLayerStyle: LayerProps = {
+  id: 'street-lines',
+  type: 'line',
+  layout: {
+    'line-join': 'round',
+    'line-cap': 'round'
+  },
+  paint: {
+    'line-color': ['get', 'color'],
+    'line-width': 3,
+    'line-opacity': 1
+  },
+};
 
 interface TrafficMapProps {
   followEmergency?: boolean;
@@ -44,25 +103,6 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
     latitude: number;
     content: React.ReactNode;
   } | null>(null);
-
-  // Create circle layers for intersections
-  const circleLayersData = {
-    type: 'FeatureCollection',
-    features: intersections.map(intersection => ({
-      type: 'Feature',
-      properties: {
-        id: intersection.id,
-        name: intersection.name,
-        status: intersection.status,
-        congestion: intersection.congestion,
-        color: getStatusColor(intersection.status),
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [intersection.lng, intersection.lat],
-      },
-    })),
-  };
 
   // Client-side only operation
   useEffect(() => {
@@ -78,27 +118,16 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
     return null;
   }
 
-  // Create circle layers for intersections
-  const circleLayer: LayerProps = {
-    id: 'intersection-circles',
-    type: 'circle',
-    paint: {
-      'circle-radius': 40,
-      'circle-color': ['get', 'color'],
-      'circle-opacity': ['get', 'congestion'],
-      'circle-stroke-width': 2,
-      'circle-stroke-color': ['get', 'color'],
-    },
-  };
-
   return (
     <MapboxContainer>
       <Map
         mapboxAccessToken={process.env.MAPBOX_ACCESS_TOKEN}
         initialViewState={{
-          longitude: sanjose.lng,
-          latitude: sanjose.lat,
-          zoom: 13,
+          longitude: -121.8863,
+          latitude: 37.3352,
+          zoom: 15.5,
+          pitch: 0,
+          bearing: 0
         }}
         style={{ width: '100%', height: '100%', borderRadius: '0.5rem' }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
@@ -113,9 +142,9 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
           />
         )}
 
-        {/* Render intersections as a data layer */}
-        <Source id="intersections" type="geojson" data={circleLayersData as GeoJSON.FeatureCollection}>
-          <Layer {...circleLayer} />
+        {/* Render street segments as a line layer */}
+        <Source id="streets-source" type="geojson" data={streetLayersData}>
+          <Layer {...streetLayerStyle} />
         </Source>
 
         {/* Render emergency vehicles as markers */}

@@ -240,6 +240,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
             latitude={popupInfo.latitude}
             anchor="bottom"
             onClose={() => setPopupInfo(null)}
+            closeOnClick={false}
           >
             {popupInfo.content}
           </Popup>

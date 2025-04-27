@@ -108,7 +108,14 @@ const trafficCameras = [
     lat: 37.340066, 
     lng: -121.882437, 
     name: "Main Intersection Camera",
-    feedUrl: "http://localhost:8000/video-feed" // Updated to use our FastAPI endpoint
+    feedUrl: "http://localhost:8000/video-feed"
+  },
+  { 
+    id: 2,
+    lat: 37.338000, // Slightly different position
+    lng: -121.884000,
+    name: "Secondary Camera",
+    feedUrl: "placeholder-feed-url" // Doesn't point to the actual feed
   }
 ];
 

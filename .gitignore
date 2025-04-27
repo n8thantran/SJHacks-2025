@@ -47,3 +47,6 @@ yolov8n.pt
 
 #pycache
 __pycache__/
+
+# Video files
+*.mp4

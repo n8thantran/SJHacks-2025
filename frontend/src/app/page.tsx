@@ -27,6 +27,8 @@ export default function Dashboard() {
     id: number;
     name: string;
   } | null>(null);
+  const [lightCommandText, setLightCommandText] = useState('');
+  const [sendCommandStatus, setSendCommandStatus] = useState('');
   
   const { stats, error: cameraError } = useCameraStats();
   const { status: lightStatus, error: lightError } = useTrafficLights();
@@ -41,6 +43,35 @@ export default function Dashboard() {
 
   const handleCameraSelect = (camera: { id: number; name: string }) => {
     setSelectedCamera(camera);
+  };
+  
+  const handleSendLightCommand = async () => {
+    if (!lightCommandText.trim()) return;
+    
+    setSendCommandStatus('Sending...');
+    try {
+      const response = await fetch('http://localhost:5052/lights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: lightCommandText }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to send command: ${response.status}`);
+      }
+      
+      setLightCommandText('');
+      setSendCommandStatus('Command sent!');
+      console.log('Light command sent successfully');
+      setTimeout(() => setSendCommandStatus(''), 3000);
+
+    } catch (error) {
+      console.error('Error sending light command:', error);
+      setSendCommandStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setSendCommandStatus(''), 5000);
+    }
   };
 
   return (
@@ -118,13 +149,22 @@ export default function Dashboard() {
                   </button>
                 )}
               </div>
-              <div className="w-full h-64 bg-black rounded-lg overflow-hidden mb-4">
+              <div className="w-full h-64 bg-black rounded-lg overflow-hidden mb-4 flex items-center justify-center">
                 {selectedCamera ? (
-                  <CameraViewer 
-                    cameraId={selectedCamera.id}
-                    onClose={() => setSelectedCamera(null)}
-                  />
+                  selectedCamera.id === 1 ? (
+                    <CameraViewer 
+                      cameraId={selectedCamera.id}
+                      onClose={() => setSelectedCamera(null)}
+                    />
+                  ) : (
+                    // Placeholder for other cameras (like ID 2)
+                    <div className="text-slate-400 p-4 text-center">
+                      <Camera size={32} className="mb-2 mx-auto" />
+                      <p>No live feed available for {selectedCamera.name}.</p>
+                    </div>
+                  )
                 ) : (
+                  // Placeholder when no camera is selected
                   <div className="h-full flex flex-col items-center justify-center text-slate-400">
                     <Camera size={32} className="mb-2" />
                     <p>Click on a camera marker on the map</p>
@@ -133,36 +173,35 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Camera Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-700/50 rounded-lg p-3">
-                  <p className="text-slate-400 text-sm">Vehicles Detected</p>
-                  <p className="text-2xl font-semibold">
-                    {stats?.counts.total || 0}
-                  </p>
+              {/* Camera Stats - Only show for Camera 1 */}
+              {selectedCamera?.id === 1 && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-700/50 rounded-lg p-3">
+                    <p className="text-slate-400 text-sm">Vehicles Detected</p>
+                    <p className="text-2xl font-semibold">
+                      {stats?.counts.total || 0}
+                    </p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-3">
+                    <p className="text-slate-400 text-sm">Northbound</p>
+                    <p className="text-2xl font-semibold">
+                      {stats?.counts.northbound || 0}
+                    </p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-3">
+                    <p className="text-slate-400 text-sm">Southbound</p>
+                    <p className="text-2xl font-semibold">
+                      {stats?.counts.southbound || 0}
+                    </p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-3">
+                    <p className="text-slate-400 text-sm">Traffic Flow</p>
+                    <p className={`text-2xl font-semibold ${getFlowColor(stats?.counts.total)}`}>
+                      {getFlowText(stats?.counts.total)}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-slate-700/50 rounded-lg p-3">
-                  <p className="text-slate-400 text-sm">Northbound</p>
-                  <p className="text-2xl font-semibold">
-                    {stats?.counts.northbound || 0}
-                  </p>
-                </div>
-                <div className="bg-slate-700/50 rounded-lg p-3">
-                  <p className="text-slate-400 text-sm">Southbound</p>
-                  <p className="text-2xl font-semibold">
-                    {stats?.counts.southbound || 0}
-                  </p>
-                </div>
-                <div className="bg-slate-700/50 rounded-lg p-3">
-                  <p className="text-slate-400 text-sm">Traffic Flow</p>
-                  <p className="text-2xl font-semibold text-emerald-500">
-                    {stats?.counts.total ? (
-                      stats.counts.total > 50 ? 'Heavy' : 
-                      stats.counts.total > 20 ? 'Moderate' : 'Light'
-                    ) : 'No Data'}
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* Lights Section */}
               <div className="mt-6">
@@ -194,6 +233,35 @@ export default function Dashboard() {
                 {lightError && (
                   <p className="text-red-400 text-xs mt-2">Error fetching light data: {lightError}</p>
                 )}
+                
+                {/* Send Command Section */}
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <label htmlFor="lightCommand" className="block text-sm font-medium text-slate-400 mb-1">
+                    Send Command:
+                  </label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      id="lightCommand"
+                      value={lightCommandText}
+                      onChange={(e) => setLightCommandText(e.target.value)}
+                      placeholder="Enter command text..."
+                      className="flex-grow bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={handleSendLightCommand}
+                      disabled={!lightCommandText.trim() || sendCommandStatus === 'Sending...'}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm"
+                    >
+                      Send
+                    </button>
+                  </div>
+                  {sendCommandStatus && (
+                    <p className={`text-xs mt-1 ${sendCommandStatus.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>
+                      {sendCommandStatus}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -211,4 +279,19 @@ function getLightColorClass(color: LightColor): string {
     case 'green': return 'bg-green-500';
     default: return 'bg-gray-500';
   }
+}
+
+// Helper functions for Traffic Flow text and color
+function getFlowText(total: number | undefined): string {
+  if (total === undefined || total === null) return 'No Data';
+  if (total > 50) return 'Heavy';
+  if (total > 20) return 'Moderate';
+  return 'Light';
+}
+
+function getFlowColor(total: number | undefined): string {
+  if (total === undefined || total === null) return 'text-slate-400';
+  if (total > 50) return 'text-red-500';
+  if (total > 20) return 'text-amber-500'; // Changed moderate to amber
+  return 'text-emerald-500';
 }

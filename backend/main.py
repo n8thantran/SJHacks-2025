@@ -16,7 +16,7 @@ import uvicorn
 
 # Configuration
 CONFIG = {
-    'video_path': 'freeway.mp4',
+    'video_path': 'street.mp4',
     'model_path': 'yolov8n.pt',
     'output_path': 'output.mp4',
     'frame_scale': 0.4,  # Scale down frames to 40% of original size
@@ -194,8 +194,7 @@ async def process_video():
             cv2.line(frame, (0, line_y), (width, line_y), (0, 255, 255), 2)
             cv2.line(frame, (mid_x, 0), (mid_x, height), (255, 0, 0), 2)
             
-            cv2.imshow('frame', frame)
-            cv2.waitKey(1)
+            
             # Update current frame and write to output
             current_frame = frame
             out.write(frame)

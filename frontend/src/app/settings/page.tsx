@@ -406,7 +406,7 @@ export default function SettingsPage() {
             <ul className="space-y-2">
               <li>
                 <button 
-                  className={`w-full flex items-center p-2 rounded ${activeTab === 'general' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
+                  className={`sidebar-button w-full flex items-center p-2 rounded ${activeTab === 'general' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
                   onClick={() => setActiveTab('general')}
                 >
                   <Globe size={16} className="mr-2" />
@@ -415,7 +415,7 @@ export default function SettingsPage() {
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center p-2 rounded ${activeTab === 'notifications' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
+                  className={`sidebar-button w-full flex items-center p-2 rounded ${activeTab === 'notifications' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
                   onClick={() => setActiveTab('notifications')}
                 >
                   <Bell size={16} className="mr-2" />
@@ -424,7 +424,7 @@ export default function SettingsPage() {
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center p-2 rounded ${activeTab === 'account' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
+                  className={`sidebar-button w-full flex items-center p-2 rounded ${activeTab === 'account' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
                   onClick={() => setActiveTab('account')}
                 >
                   <User size={16} className="mr-2" />
@@ -433,7 +433,7 @@ export default function SettingsPage() {
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center p-2 rounded ${activeTab === 'security' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
+                  className={`sidebar-button w-full flex items-center p-2 rounded ${activeTab === 'security' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
                   onClick={() => setActiveTab('security')}
                 >
                   <Lock size={16} className="mr-2" />
@@ -442,7 +442,7 @@ export default function SettingsPage() {
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center p-2 rounded ${activeTab === 'database' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
+                  className={`sidebar-button w-full flex items-center p-2 rounded ${activeTab === 'database' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700'}`}
                   onClick={() => setActiveTab('database')}
                 >
                   <Database size={16} className="mr-2" />

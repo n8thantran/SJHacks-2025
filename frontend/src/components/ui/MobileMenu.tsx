@@ -69,7 +69,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               <Link
                 href={item.href}
                 key={item.name}
-                className={`flex items-center gap-3 p-3 rounded-md ${
+                className={`sidebar-button flex items-center gap-3 p-3 rounded-md ${
                   isActive 
                     ? 'bg-blue-500 text-white' 
                     : 'text-slate-200 hover:bg-slate-800'
@@ -96,7 +96,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               <Link
                 href={item.href}
                 key={item.name}
-                className={`flex items-center gap-3 p-3 rounded-md ${
+                className={`sidebar-button flex items-center gap-3 p-3 rounded-md ${
                   isActive 
                     ? 'bg-blue-500 text-white' 
                     : 'text-slate-200 hover:bg-slate-800'

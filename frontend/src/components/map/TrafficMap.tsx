@@ -181,15 +181,17 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
   // Stop video processing when component unmounts
   useEffect(() => {
     return () => {
-      // Stop video processing on unmount
-      fetch('http://localhost:8000/stop', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }).catch(console.error);
+      // Only try to stop if we're not in offline mode
+      if (selectedCameraId) {
+        fetch('http://localhost:8000/stop', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }).catch(console.error);
+      }
     };
-  }, []);
+  }, [selectedCameraId]);
 
   // Stop video processing when camera is deselected
   useEffect(() => {
@@ -205,7 +207,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
 
   // Stop video processing when popup is closed
   useEffect(() => {
-    if (!popupInfo) {
+    if (!popupInfo && selectedCameraId) {
       fetch('http://localhost:8000/stop', {
         method: 'POST',
         headers: {
@@ -213,7 +215,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
         },
       }).catch(console.error);
     }
-  }, [popupInfo]);
+  }, [popupInfo, selectedCameraId]);
 
   // Client-side only operation
   useEffect(() => {
@@ -364,6 +366,16 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
     
     // Handle map click to deselect camera
     map.on('click', (e) => {
+      // Check if the click event's target is within the map container
+      const clickTarget = e.originalEvent.target as HTMLElement;
+      const mapContainer = map.getContainer();
+      
+      // If the click didn't happen on an element inside the map container or 
+      // is already being handled elsewhere, exit early
+      if (!mapContainer.contains(clickTarget) || clickTarget.closest('.sidebar-button')) {
+        return;
+      }
+      
       // Check if the camera-markers layer exists
       const cameraLayer = map.getStyle().layers?.find(layer => layer.id === 'camera-markers');
       
@@ -388,7 +400,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
 
   const handleCameraClick = async (camera: { id: number; name: string; feedUrl: string; lat: number; lng: number }) => {
     try {
-      // Send POST request to start video processing
+      // Try to start video processing
       const response = await fetch('http://localhost:8000/start', {
         method: 'POST',
         headers: {
@@ -410,15 +422,15 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
       setSelectedCameraId(camera.id);
     } catch (error) {
       console.error('Error starting video processing:', error);
-      // Show error state
-      setSelectedCameraId(null);
+      // Show offline state instead of error state
+      setSelectedCameraId(camera.id);
       setPopupInfo({
         longitude: camera.lng,
         latitude: camera.lat,
         content: (
           <div className="text-black">
-            <h3 className="font-bold text-red-500">Camera Offline</h3>
-            <p>Unable to connect to camera feed</p>
+            <h3 className="font-bold text-amber-500">Camera in Offline Mode</h3>
+            <p>Using simulated data</p>
           </div>
         )
       });
@@ -488,7 +500,9 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
               style={{
                 transform: `rotate(${vehicle.heading}deg)`,
               }}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent click from reaching map
+                e.preventDefault(); // Also prevent default behavior
                 setPopupInfo({
                   longitude: vehiclePositions[index].lng,
                   latitude: vehiclePositions[index].lat,
@@ -522,6 +536,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
               }`}
               onClick={(e) => {
                 e.stopPropagation(); // Prevent click from reaching map
+                e.preventDefault(); // Also prevent default behavior
                 handleCameraClick(camera);
               }}
             >

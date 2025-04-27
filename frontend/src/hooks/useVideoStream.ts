@@ -1,33 +1,55 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-interface VideoStreamProps {
+interface UseVideoStreamProps {
   url: string;
-  refreshRate?: number; // in milliseconds
+  refreshRate?: number;
 }
 
-export function useVideoStream({ url, refreshRate = 33 }: VideoStreamProps) { // ~30fps
-  const [streamUrl, setStreamUrl] = useState(`${url}?t=${Date.now()}`);
-  const [isStreaming, setIsStreaming] = useState(true);
+// Fallback video source for offline mode
+const FALLBACK_VIDEO_SRC = '/images/offline-camera-feed.jpg';
+
+export function useVideoStream({ url, refreshRate = 30 }: UseVideoStreamProps) {
+  const [videoSrc, setVideoSrc] = useState<string>(FALLBACK_VIDEO_SRC);
+  const [isOffline, setIsOffline] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    if (!isStreaming) return;
+    const updateVideo = async () => {
+      try {
+        if (!url) {
+          setVideoSrc(FALLBACK_VIDEO_SRC);
+          setIsOffline(true);
+          return;
+        }
 
-    const interval = setInterval(() => {
-      setStreamUrl(`${url}?t=${Date.now()}`);
-    }, refreshRate);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch video feed');
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setVideoSrc(objectUrl);
+        setIsOffline(false);
+      } catch (error) {
+        console.error('Error fetching video feed:', error);
+        setVideoSrc(FALLBACK_VIDEO_SRC);
+        setIsOffline(true);
+      }
+    };
+
+    // Initial update
+    updateVideo();
+
+    // Set up polling
+    if (url) {
+      intervalRef.current = setInterval(updateVideo, 1000 / refreshRate);
+    }
 
     return () => {
-      clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-  }, [url, refreshRate, isStreaming]);
+  }, [url, refreshRate]);
 
-  const toggleStream = () => {
-    setIsStreaming(prev => !prev);
-  };
-
-  return {
-    streamUrl,
-    isStreaming,
-    toggleStream
-  };
+  return { videoSrc, isOffline };
 } 

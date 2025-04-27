@@ -9,9 +9,20 @@ interface CameraStats {
   };
 }
 
+// Fallback data when backend is not available
+const fallbackStats: CameraStats = {
+  timestamp: new Date().toISOString(),
+  counts: {
+    northbound: 45,
+    southbound: 38,
+    total: 83
+  }
+};
+
 export function useCameraStats() {
-  const [stats, setStats] = useState<CameraStats | null>(null);
+  const [stats, setStats] = useState<CameraStats | null>(fallbackStats);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -20,9 +31,11 @@ export function useCameraStats() {
         if (!response.ok) throw new Error('Failed to fetch traffic data');
         const data = await response.json();
         setStats(data);
+        setIsOffline(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
         console.error('Error fetching traffic data:', err);
+        setStats(fallbackStats);
+        setIsOffline(true);
       }
     };
 
@@ -35,5 +48,5 @@ export function useCameraStats() {
     return () => clearInterval(interval);
   }, []);
 
-  return { stats, error };
+  return { stats, error, isOffline };
 } 

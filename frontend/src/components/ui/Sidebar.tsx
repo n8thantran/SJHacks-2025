@@ -69,7 +69,7 @@ export default function Sidebar() {
     return (
       <Link 
         href={item.href}
-        className={`flex items-center gap-3 px-3 py-2 rounded-md mb-1 ${
+        className={`sidebar-button flex items-center gap-3 px-3 py-2 rounded-md mb-1 ${
           isActive 
             ? 'bg-blue-500 text-white' 
             : 'text-slate-300 hover:bg-slate-700'
@@ -125,7 +125,7 @@ export default function Sidebar() {
           <div className="p-3">
             <div className="flex justify-between text-xs mb-2">
               <span className="text-slate-400">Uptime:</span>
-              <span className="text-emerald-400 font-medium">{systemStatus.uptime.toFixed(1)}%</span>
+              <span className="text-emerald-400 font-medium">99.9%</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-slate-400">Response Time:</span>

@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Camera, MapPin, AlertTriangle, Search, Sliders, MoreVertical, Video, PauseCircle, RefreshCw, ChevronDown } from 'lucide-react';
-import CameraViewer from '@/components/cameras/CameraViewer';
+import { Camera, MapPin, AlertTriangle, Search, Sliders, Video, PauseCircle, RefreshCw, ChevronDown } from 'lucide-react';
 
 // Mock camera data
 const mockCameras = [
@@ -16,7 +15,7 @@ const mockCameras = [
     ipAddress: '192.168.1.101',
     model: 'TrafficCam Pro X1',
     installDate: '2022-03-10',
-    thumbnail: '/images/camera-feed-1.jpg',
+    thumbnail: '/images/cam1.jpeg',
   },
   {
     id: 2,
@@ -27,7 +26,7 @@ const mockCameras = [
     ipAddress: '192.168.1.102',
     model: 'TrafficCam Pro X1',
     installDate: '2022-02-15',
-    thumbnail: '/images/camera-feed-2.jpg',
+    thumbnail: '/images/cam2.jpeg',
     issue: 'Connection error',
   },
   {
@@ -39,19 +38,19 @@ const mockCameras = [
     ipAddress: '192.168.1.103',
     model: 'TrafficCam Pro X2',
     installDate: '2022-05-20',
-    thumbnail: '/images/camera-feed-3.jpg',
+    thumbnail: '/images/cam3.jpeg',
   },
   {
     id: 4,
     name: 'Market St & San Carlos',
     location: 'Downtown',
-    status: 'maintenance',
+    status: 'offline',
     lastMaintenance: '2023-11-10',
     ipAddress: '192.168.1.104',
     model: 'TrafficCam Pro X1',
     installDate: '2022-01-15',
-    thumbnail: '/images/camera-feed-4.jpg',
-    issue: 'Scheduled maintenance',
+    thumbnail: '/images/cam4.jpeg',
+    issue: 'Maintenance Mode',
   },
   {
     id: 5,
@@ -62,7 +61,7 @@ const mockCameras = [
     ipAddress: '192.168.1.105',
     model: 'TrafficCam Ultra HD',
     installDate: '2023-01-20',
-    thumbnail: '/images/camera-feed-5.jpg',
+    thumbnail: '/images/cam5.jpeg',
   },
   {
     id: 6,
@@ -73,7 +72,7 @@ const mockCameras = [
     ipAddress: '192.168.1.106',
     model: 'TrafficCam Pro X2',
     installDate: '2022-06-15',
-    thumbnail: '/images/camera-feed-6.jpg',
+    thumbnail: '/images/cam6.jpeg',
     issue: 'Poor video quality',
   },
   {
@@ -85,7 +84,7 @@ const mockCameras = [
     ipAddress: '192.168.1.107',
     model: 'TrafficCam Ultra HD',
     installDate: '2023-02-10',
-    thumbnail: '/images/camera-feed-7.jpg',
+    thumbnail: '/images/cam7.jpeg',
   },
   {
     id: 8,
@@ -96,7 +95,7 @@ const mockCameras = [
     ipAddress: '192.168.1.108',
     model: 'TrafficCam Pro X2',
     installDate: '2022-09-15',
-    thumbnail: '/images/camera-feed-8.jpg',
+    thumbnail: '/images/cam8.jpeg',
   },
 ];
 
@@ -104,9 +103,7 @@ export default function CamerasPage() {
   const [cameras] = useState(mockCameras);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
-  const [showViewer, setShowViewer] = useState(false);
+  const statusFilter = 'all'; // Changed to constant since we removed filtering functionality
   
   // Get status badge styling
   const getStatusBadge = (status: string) => {
@@ -135,51 +132,41 @@ export default function CamerasPage() {
     return matchesSearch && matchesStatus;
   });
   
-  // Toggle camera selection
-  const toggleCameraSelection = (id: number) => {
-    if (selectedCamera === id) {
-      setSelectedCamera(null);
-    } else {
-      setSelectedCamera(id);
-    }
-  };
-  
-  const handleCameraClick = (cameraId: number) => {
-    setSelectedCamera(cameraId);
-    setShowViewer(true);
-  };
-
-  const handleCloseViewer = () => {
-    setShowViewer(false);
-    setSelectedCamera(null);
-  };
-  
   // Render camera grid view
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {filteredCameras.map(camera => (
         <div 
           key={camera.id}
-          onClick={() => handleCameraClick(camera.id)}
-          className={`bg-slate-800 rounded-lg overflow-hidden border ${selectedCamera === camera.id ? 'border-blue-500' : 'border-slate-700'} cursor-pointer hover:border-blue-500/50 transition-colors`}
+          className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700"
         >
           <div className="relative">
             <div className="aspect-video bg-slate-900 flex items-center justify-center">
-              {/* We'd normally use real images but using a placeholder for mock */}
-              <Camera size={48} className="text-slate-700" />
+              {camera.status !== 'offline' ? (
+                <img 
+                  src={camera.thumbnail} 
+                  alt={`${camera.name} camera feed`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-slate-700">
+                  <Camera size={48} />
+                  <span className="text-sm mt-2">Camera Offline</span>
+                </div>
+              )}
             </div>
             <div className="absolute top-2 right-2">
               {getStatusBadge(camera.status)}
             </div>
-            {camera.status === 'online' && (
+            {(camera.status === 'online' || camera.status === 'maintenance') && (
               <div className="absolute bottom-2 right-2 flex space-x-1">
-                <button className="p-1 bg-slate-800/70 rounded-full text-slate-300 hover:text-white">
+                <button className="p-1 bg-slate-800/70 rounded-full text-slate-300" disabled>
                   <PauseCircle size={16} />
                 </button>
-                <button className="p-1 bg-slate-800/70 rounded-full text-slate-300 hover:text-white">
+                <button className="p-1 bg-slate-800/70 rounded-full text-slate-300" disabled>
                   <Video size={16} />
                 </button>
-                <button className="p-1 bg-slate-800/70 rounded-full text-slate-300 hover:text-white">
+                <button className="p-1 bg-slate-800/70 rounded-full text-slate-300" disabled>
                   <RefreshCw size={16} />
                 </button>
               </div>
@@ -188,15 +175,6 @@ export default function CamerasPage() {
           <div className="p-3">
             <div className="flex justify-between items-start">
               <h3 className="font-medium">{camera.name}</h3>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleCameraSelection(camera.id);
-                }} 
-                className="p-1 text-slate-400 hover:text-slate-200"
-              >
-                <MoreVertical size={16} />
-              </button>
             </div>
             <div className="flex items-center text-xs text-slate-400 mt-1">
               <MapPin size={12} className="mr-1" />
@@ -225,33 +203,16 @@ export default function CamerasPage() {
             <th className="px-4 py-3 text-left">Status</th>
             <th className="px-4 py-3 text-left">Model</th>
             <th className="px-4 py-3 text-left">Last Maintenance</th>
-            <th className="px-4 py-3 text-left">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-700">
           {filteredCameras.map(camera => (
-            <tr key={camera.id} className="hover:bg-slate-750">
+            <tr key={camera.id}>
               <td className="px-4 py-3">{camera.name}</td>
               <td className="px-4 py-3">{camera.location}</td>
               <td className="px-4 py-3">{getStatusBadge(camera.status)}</td>
               <td className="px-4 py-3">{camera.model}</td>
               <td className="px-4 py-3">{camera.lastMaintenance}</td>
-              <td className="px-4 py-3">
-                <div className="flex space-x-2">
-                  <button className="p-1 text-slate-400 hover:text-blue-500 rounded">
-                    <Video size={16} />
-                  </button>
-                  <button className="p-1 text-slate-400 hover:text-green-500 rounded">
-                    <RefreshCw size={16} />
-                  </button>
-                  <button 
-                    onClick={() => toggleCameraSelection(camera.id)}
-                    className="p-1 text-slate-400 hover:text-slate-200 rounded"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-              </td>
             </tr>
           ))}
         </tbody>
@@ -267,9 +228,6 @@ export default function CamerasPage() {
             <Camera className="mr-2" size={24} />
             <h1 className="text-2xl font-bold">Traffic Cameras</h1>
           </div>
-          <button className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 rounded-md">
-            Add Camera
-          </button>
         </div>
         
         {/* Filters and controls */}
@@ -292,40 +250,6 @@ export default function CamerasPage() {
                 <span className="text-sm">Status: {statusFilter === 'all' ? 'All' : statusFilter}</span>
                 <ChevronDown size={14} className="ml-2" />
               </button>
-              <div className="absolute right-0 mt-1 w-40 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-10 hidden">
-                <div className="py-1">
-                  <button 
-                    onClick={() => setStatusFilter('all')}
-                    className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-700"
-                  >
-                    All
-                  </button>
-                  <button 
-                    onClick={() => setStatusFilter('online')}
-                    className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-700"
-                  >
-                    Online
-                  </button>
-                  <button 
-                    onClick={() => setStatusFilter('offline')}
-                    className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-700"
-                  >
-                    Offline
-                  </button>
-                  <button 
-                    onClick={() => setStatusFilter('maintenance')}
-                    className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-700"
-                  >
-                    Maintenance
-                  </button>
-                  <button 
-                    onClick={() => setStatusFilter('warning')}
-                    className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-700"
-                  >
-                    Warning
-                  </button>
-                </div>
-              </div>
             </div>
             
             <div className="flex bg-slate-800 border border-slate-700 rounded-md overflow-hidden">
@@ -349,17 +273,6 @@ export default function CamerasPage() {
         <div className="mb-4 text-sm text-slate-400">
           Showing {filteredCameras.length} of {cameras.length} cameras
         </div>
-        
-        {showViewer && selectedCamera && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="w-4/5 h-4/5 bg-slate-800 rounded-lg overflow-hidden">
-              <CameraViewer 
-                cameraId={selectedCamera} 
-                onClose={handleCloseViewer}
-              />
-            </div>
-          </div>
-        )}
         
         {/* Camera display */}
         {filteredCameras.length === 0 ? (

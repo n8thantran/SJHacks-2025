@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import AlertPanel from '@/components/alerts/AlertPanel';
-import { MapPin, Car, Clock, AlertCircle, Camera } from 'lucide-react';
+import { MapPin, Car, Clock, AlertCircle, Camera, Lightbulb } from 'lucide-react';
 import { useCameraStats } from '@/hooks/useCameraStats';
 import CameraViewer from '@/components/cameras/CameraViewer';
+import { useTrafficLights } from '@/hooks/useTrafficLights';
+import type { LightColor } from '@/hooks/useTrafficLights';
 
 // Import TrafficMap component dynamically with no SSR
 const TrafficMap = dynamic(() => import('@/components/map/TrafficMap'), {
@@ -26,7 +28,8 @@ export default function Dashboard() {
     name: string;
   } | null>(null);
   
-  const { stats, error } = useCameraStats();
+  const { stats, error: cameraError } = useCameraStats();
+  const { status: lightStatus, error: lightError } = useTrafficLights();
   
   useEffect(() => {
     setIsClient(true);
@@ -160,16 +163,37 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-            </div>
 
-            {/* Alerts Section */}
-            <div>
-              <h2 className="text-lg font-medium mb-4 flex items-center">
-                <AlertCircle className="mr-2" size={18} />
-                Active Alerts
-              </h2>
-              <div className="space-y-3">
-                <AlertPanel />
+              {/* Lights Section */}
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-3 flex items-center">
+                  <Lightbulb className="mr-2" size={18} />
+                  Traffic Lights
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* East Light */}
+                  <div className="bg-slate-700/50 rounded-lg p-3 flex flex-col items-center">
+                    <p className="text-slate-400 text-sm mb-2">East</p>
+                    <div className={`w-6 h-6 rounded-full ${getLightColorClass(lightStatus.lights.east)}`}></div>
+                  </div>
+                  
+                  {/* West Light */}
+                  <div className="bg-slate-700/50 rounded-lg p-3 flex flex-col items-center">
+                    <p className="text-slate-400 text-sm mb-2">West</p>
+                    <div className={`w-6 h-6 rounded-full ${getLightColorClass(lightStatus.lights.west)}`}></div>
+                  </div>
+                  
+                  {/* North Light */}
+                  <div className="bg-slate-700/50 rounded-lg p-3 flex flex-col items-center">
+                    <p className="text-slate-400 text-sm mb-2">North</p>
+                    <div className={`w-6 h-6 rounded-full ${getLightColorClass(lightStatus.lights.north)}`}></div>
+                  </div>
+                  
+                  {/* South Light Placeholder - REMOVED */}
+                </div>
+                {lightError && (
+                  <p className="text-red-400 text-xs mt-2">Error fetching light data: {lightError}</p>
+                )}
               </div>
             </div>
           </div>
@@ -177,4 +201,14 @@ export default function Dashboard() {
       </div>
     </DashboardLayout>
   );
+}
+
+// Helper function for light color CSS
+function getLightColorClass(color: LightColor): string {
+  switch (color) {
+    case 'red': return 'bg-red-500';
+    case 'yellow': return 'bg-yellow-500';
+    case 'green': return 'bg-green-500';
+    default: return 'bg-gray-500';
+  }
 }

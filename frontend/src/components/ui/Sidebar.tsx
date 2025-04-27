@@ -13,6 +13,7 @@ import {
   HelpCircle 
 } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 // Navigation item interface
 interface NavItem {
@@ -31,15 +32,33 @@ const mainNavItems: NavItem[] = [
 ];
 
 const secondaryNavItems: NavItem[] = [
-  { name: 'Notifications', icon: <Bell size={20} />, href: '/notifications' },
   { name: 'Schedule', icon: <Clock size={20} />, href: '/schedule' },
   { name: 'Cameras', icon: <Camera size={20} />, href: '/cameras' },
-  { name: 'Settings', icon: <Settings size={20} />, href: '/settings' },
-  { name: 'Help & Support', icon: <HelpCircle size={20} />, href: '/help' },
+  { name: 'Settings', icon: <Settings size={20} />, href: '/settings' }
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [systemStatus, setSystemStatus] = useState({
+    uptime: 98.5,
+    responseTime: 105,
+    lastCheck: 0
+  });
+
+  useEffect(() => {
+    // Update system status every second
+    const interval = setInterval(() => {
+      setSystemStatus(prev => ({
+        uptime: 97 + Math.random() * 2, // Random between 97-99
+        responseTime: 90 + Math.random() * 30, // Random between 90-120
+        lastCheck: 0
+      }));
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
   
   // Navigation item component
   const NavItem = ({ item }: { item: NavItem }) => {
@@ -70,10 +89,10 @@ export default function Sidebar() {
   };
   
   return (
-    <aside className="w-64 bg-slate-800 border-r border-slate-700 h-full py-6 hidden md:block">
+    <aside className="w-64 bg-card border-r border-border h-full py-6 hidden md:block">
       
       <div className="px-4 mb-6">
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
           Main
         </h2>
         <nav>
@@ -84,7 +103,7 @@ export default function Sidebar() {
       </div>
       
       <div className="px-4">
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
           System
         </h2>
         <nav>
@@ -95,19 +114,21 @@ export default function Sidebar() {
       </div>
       
       <div className="mt-auto px-4 pt-6">
-        <div className="bg-slate-700/50 rounded-lg p-4">
+        <div className="bg-card/50 rounded-lg p-4">
           <h3 className="font-medium mb-2 flex items-center gap-2">
-            <AlertCircle size={16} className="text-amber-500" />
+            <AlertCircle size={16} className="text-warning" />
             System Status
           </h3>
-          <p className="text-xs text-slate-300 mb-3">All systems operational. Last check: 5 minutes ago</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            All systems operational. Last check: Now
+          </p>
           <div className="flex justify-between text-xs">
-            <span className="text-slate-400">Uptime:</span>
-            <span className="text-emerald-500">99.9%</span>
+            <span className="text-muted-foreground">Uptime:</span>
+            <span className="text-accent">{systemStatus.uptime.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between text-xs mt-1">
-            <span className="text-slate-400">Response Time:</span>
-            <span className="text-emerald-500">120ms</span>
+            <span className="text-muted-foreground">Response Time:</span>
+            <span className="text-accent">{systemStatus.responseTime.toFixed(0)}ms</span>
           </div>
         </div>
       </div>

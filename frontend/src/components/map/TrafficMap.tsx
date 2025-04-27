@@ -17,10 +17,9 @@ if (process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
 }
 
 // Downtown San Jose center coordinates
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sanjose = { lat: 37.3352, lng: -121.8863 };
 
-// Street segments for perfect cross shape
+// Street segments
 const streetSegments = [
   {
     id: 1,
@@ -54,13 +53,13 @@ const streetSegments = [
   }
 ];
 
-// Mock emergency vehicle data
+// Emergency vehicle info
 const emergencyVehicles = [
   { 
     id: 1, 
     type: "ambulance", 
     heading: 0, 
-    speeds: [35, 25, 20, 30, 15, 40, 35], // Different speeds for different segments
+    speeds: [35, 25, 20, 30, 15, 40, 35],
     route: [
       { lat: 37.335830, lng: -121.886026 },
       { lat: 37.328644, lng: -121.880680 },
@@ -76,7 +75,7 @@ const emergencyVehicles = [
     id: 2,
     type: "ambulance",
     heading: 0,
-    speeds: [40, 30, 25, 35, 20, 45, 30, 25, 35, 40, 30, 35, 25, 30, 35, 40, 35, 40, 35, 35], // Added speeds for all segments
+    speeds: [40, 30, 25, 35, 20, 45, 30, 25, 35, 40, 30, 35, 25, 30, 35, 40, 35, 40, 35, 35],
     route: [
       { lat: 37.326093, lng: -121.885250 },
       { lat: 37.326844, lng: -121.883677 },
@@ -103,7 +102,6 @@ const emergencyVehicles = [
   }
 ];
 
-// Mock traffic camera data
 const trafficCameras = [
   { 
     id: 1, 
@@ -164,6 +162,16 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
   const [hoveredStreetId, setHoveredStreetId] = useState<number | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<number | null>(null);
   
+  // Vehicle animation state
+  const [vehiclePositions, setVehiclePositions] = useState(
+    emergencyVehicles.map(vehicle => vehicle.route[0])
+  );
+  const [currentRouteIndices, setCurrentRouteIndices] = useState(
+    emergencyVehicles.map(() => 0)
+  );
+  const animationRef = useRef<number | null>(null);
+  const startTimeRefs = useRef<number[]>(emergencyVehicles.map(() => Date.now()));
+
   const selectedCamera = trafficCameras.find(cam => cam.id === selectedCameraId);
   const videoStream = useVideoStream({
     url: selectedCamera?.feedUrl || '',
@@ -217,10 +225,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
     if (!isClient) return;
 
     const animate = (timestamp: number) => {
-      // Calculate delta time since last frame
       const currentTime = Date.now();
-      const deltaTime = currentTime - lastFrameTimeRef.current;
-      lastFrameTimeRef.current = currentTime;
       
       // Update positions for all vehicles independently
       const newPositions = emergencyVehicles.map((vehicle, index) => {

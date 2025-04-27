@@ -213,13 +213,22 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
     
     // Handle map click to deselect camera
     map.on('click', (e) => {
-      // Check if the click was on a camera marker
-      const features = map.queryRenderedFeatures(e.point, { 
-        layers: ['camera-markers'] 
-      });
+      // Check if the camera-markers layer exists
+      const cameraLayer = map.getStyle().layers?.find(layer => layer.id === 'camera-markers');
       
-      // If click was not on a camera marker, deselect the camera
-      if (features.length === 0) {
+      if (cameraLayer) {
+        // Check if the click was on a camera marker
+        const features = map.queryRenderedFeatures(e.point, { 
+          layers: ['camera-markers'] 
+        });
+        
+        // If click was not on a camera marker, deselect the camera
+        if (features.length === 0) {
+          setSelectedCameraId(null);
+          setPopupInfo(null);
+        }
+      } else {
+        // If camera layer doesn't exist, just deselect
         setSelectedCameraId(null);
         setPopupInfo(null);
       }

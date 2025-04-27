@@ -16,12 +16,13 @@ export function useCameraStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/descriptions');
-        if (!response.ok) throw new Error('Failed to fetch camera stats');
+        const response = await fetch('http://localhost:8000/traffic-data');
+        if (!response.ok) throw new Error('Failed to fetch traffic data');
         const data = await response.json();
         setStats(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error occurred');
+        console.error('Error fetching traffic data:', err);
       }
     };
 

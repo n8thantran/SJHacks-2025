@@ -139,7 +139,11 @@ async def process_video():
         while cap.isOpened() and not stop_processing:
             ret, frame = cap.read()
             if not ret:
-                break
+                # Video ended, loop back to the beginning
+                print("Video ended. Looping...")
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                await asyncio.sleep(0.1) # Brief pause before restarting
+                continue # Continue to the next loop iteration to read the first frame
             
             # Resize frame
             frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
@@ -190,13 +194,14 @@ async def process_video():
             cv2.line(frame, (0, line_y), (width, line_y), (0, 255, 255), 2)
             cv2.line(frame, (mid_x, 0), (mid_x, height), (255, 0, 0), 2)
             
-            
+            cv2.imshow('frame', frame)
+            cv2.waitKey(1)
             # Update current frame and write to output
             current_frame = frame
             out.write(frame)
             
-            # Control frame rate
-            await asyncio.sleep(0.1)  # 10fps
+            # Control frame rate (yield control to event loop)
+            await asyncio.sleep(0)
             
     except Exception as e:
         print(f"Error in video processing: {e}")
@@ -216,9 +221,25 @@ async def video_feed():
     if current_frame is None:
         current_frame = default_frame
     
-    _, buffer = cv2.imencode('.jpg', current_frame)
+    # Convert BGR to RGB (OpenCV uses BGR, web uses RGB)
+    rgb_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
+    
+    # Encode the frame as JPEG
+    _, buffer = cv2.imencode('.jpg', rgb_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
     frame_bytes = buffer.tobytes()
-    return Response(content=frame_bytes, media_type="image/jpeg")
+    
+    headers = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Content-Type': 'image/jpeg'
+    }
+    
+    return Response(
+        content=frame_bytes,
+        media_type="image/jpeg",
+        headers=headers
+    )
 
 @app.post("/start")
 async def start_processing():
@@ -233,10 +254,20 @@ async def stop_processing():
     stop_processing = True
     return {"message": "Video processing stopped"}
 
+async def start_video_processing():
+    """Start the video processing task"""
+    global processing_task
+    processing_task = asyncio.create_task(process_video())
+
 def run_server():
     """Run the FastAPI server with video processing"""
     # Set up signal handler for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
+    
+    # Create event loop and start video processing
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_video_processing())
     
     # Start the server
     uvicorn.run(app, host="0.0.0.0", port=8000)

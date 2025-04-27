@@ -105,8 +105,8 @@ const emergencyVehicles = [
 const trafficCameras = [
   { 
     id: 1, 
-    lat: 37.3355, 
-    lng: -121.8865, 
+    lat: 37.340066, 
+    lng: -121.882437, 
     name: "Main Intersection Camera",
     feedUrl: "http://localhost:8000/video-feed" // Updated to use our FastAPI endpoint
   }
@@ -148,7 +148,7 @@ const streetLayerStyle: LayerProps = {
 
 interface TrafficMapProps {
   followEmergency?: boolean;
-  onCameraSelect?: (camera: { name: string; feedUrl: string }) => void;
+  onCameraSelect?: (camera: { id: number; name: string }) => void;
 }
 
 export default function TrafficMap({ followEmergency = false, onCameraSelect }: TrafficMapProps) {
@@ -456,42 +456,9 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
     });
   }, []);
 
-  const handleCameraClick = async (camera: { id: number; name: string; feedUrl: string; lat: number; lng: number }) => {
-    try {
-      // Try to start video processing
-      const response = await fetch('http://localhost:8000/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to start video processing');
-      }
-
-      // Call the original onCameraSelect if provided
-      if (onCameraSelect) {
-        onCameraSelect({
-          name: camera.name,
-          feedUrl: camera.feedUrl
-        });
-      }
-      setSelectedCameraId(camera.id);
-    } catch (error) {
-      console.error('Error starting video processing:', error);
-      // Show offline state instead of error state
-      setSelectedCameraId(camera.id);
-      setPopupInfo({
-        longitude: camera.lng,
-        latitude: camera.lat,
-        content: (
-          <div className="text-black">
-            <h3 className="font-bold text-amber-500">Camera in Offline Mode</h3>
-            <p>Using simulated data</p>
-          </div>
-        )
-      });
+  const handleCameraClick = async (camera: { id: number; name: string; lat: number; lng: number }) => {
+    if (onCameraSelect) {
+      onCameraSelect({ id: camera.id, name: camera.name });
     }
   };
 

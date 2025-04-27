@@ -16,16 +16,43 @@ export default function CameraViewer({ cameraId, onClose }: CameraViewerProps) {
   useEffect(() => {
     const fetchFrame = async () => {
       try {
-        setIsLoading(true);
-        const response = await fetch('http://localhost:8000/video-feed');
+        const response = await fetch('http://localhost:8000/video-feed', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch video feed');
+          throw new Error(`Failed to fetch video feed: ${response.status}`);
         }
+        
+        // Get the image data as a blob
         const blob = await response.blob();
+        
+        // Create a URL for the blob
         const url = URL.createObjectURL(blob);
+        
         if (imgRef.current) {
-          imgRef.current.src = url;
-          setIsLoading(false);
+          // Clean up previous URL
+          if (imgRef.current.src) {
+            URL.revokeObjectURL(imgRef.current.src);
+          }
+          
+          // Create a new image element to preload
+          const img = new Image();
+          img.onload = () => {
+            if (imgRef.current) {
+              imgRef.current.src = url;
+              setIsLoading(false);
+            }
+          };
+          img.onerror = () => {
+            setError('Failed to load image');
+            setIsLoading(false);
+          };
+          img.src = url;
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load video feed');
@@ -35,13 +62,19 @@ export default function CameraViewer({ cameraId, onClose }: CameraViewerProps) {
     };
 
     if (isPlaying) {
-      // Fetch a new frame every 100ms (10 FPS)
-      frameInterval.current = setInterval(fetchFrame, 100);
+      // Initial fetch
+      fetchFrame();
+      // Fetch a new frame every 50ms (for ~20 FPS)
+      frameInterval.current = setInterval(fetchFrame, 50);
     }
 
     return () => {
       if (frameInterval.current) {
         clearInterval(frameInterval.current);
+      }
+      // Clean up any remaining object URLs
+      if (imgRef.current?.src) {
+        URL.revokeObjectURL(imgRef.current.src);
       }
     };
   }, [isPlaying]);
@@ -52,6 +85,15 @@ export default function CameraViewer({ cameraId, onClose }: CameraViewerProps) {
         <div className="flex flex-col items-center justify-center h-full text-red-400">
           <p className="text-lg mb-2">Error loading camera feed</p>
           <p className="text-sm">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setIsLoading(true);
+            }}
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Retry
+          </button>
         </div>
       ) : (
         <>
@@ -76,6 +118,7 @@ export default function CameraViewer({ cameraId, onClose }: CameraViewerProps) {
             <button
               onClick={() => {
                 if (imgRef.current) {
+                  URL.revokeObjectURL(imgRef.current.src);
                   imgRef.current.src = '';
                   setIsLoading(true);
                 }

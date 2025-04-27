@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import AlertPanel from '@/components/alerts/AlertPanel';
-import { MapPin, Car, Clock, AlertCircle, Camera, Pause, Play } from 'lucide-react';
-import { useVideoStream } from '@/hooks/useVideoStream';
+import { MapPin, Car, Clock, AlertCircle, Camera } from 'lucide-react';
 import { useCameraStats } from '@/hooks/useCameraStats';
+import CameraViewer from '@/components/cameras/CameraViewer';
 
 // Import TrafficMap component dynamically with no SSR
 const TrafficMap = dynamic(() => import('@/components/map/TrafficMap'), {
@@ -22,14 +22,9 @@ export default function Dashboard() {
   const [followEmergency, setFollowEmergency] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [selectedCamera, setSelectedCamera] = useState<{
+    id: number;
     name: string;
-    feedUrl: string;
   } | null>(null);
-  
-  const videoStream = useVideoStream({
-    url: selectedCamera?.feedUrl || '',
-    refreshRate: 33, // ~30fps
-  });
   
   const { stats, error } = useCameraStats();
   
@@ -37,12 +32,11 @@ export default function Dashboard() {
     setIsClient(true);
   }, []);
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEmergencyToggle = () => {
     setFollowEmergency(!followEmergency);
   };
 
-  const handleCameraSelect = (camera: { name: string; feedUrl: string }) => {
+  const handleCameraSelect = (camera: { id: number; name: string }) => {
     setSelectedCamera(camera);
   };
 
@@ -121,30 +115,15 @@ export default function Dashboard() {
                   </button>
                 )}
               </div>
-              <div className="w-full h-64 bg-black rounded-lg overflow-hidden flex items-center justify-center mb-4 relative">
+              <div className="w-full h-64 bg-black rounded-lg overflow-hidden mb-4">
                 {selectedCamera ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={videoStream.streamUrl}
-                      className="w-full h-full object-cover"
-                      alt={`${selectedCamera.name} Live Feed`}
-                      style={{ imageRendering: 'auto' }}
-                    />
-                    <button
-                      onClick={videoStream.toggleStream}
-                      className="absolute bottom-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                    >
-                      {videoStream.isStreaming ? (
-                        <Pause size={16} className="text-white" />
-                      ) : (
-                        <Play size={16} className="text-white" />
-                      )}
-                    </button>
-                  </>
+                  <CameraViewer 
+                    cameraId={selectedCamera.id}
+                    onClose={() => setSelectedCamera(null)}
+                  />
                 ) : (
-                  <div className="text-center text-slate-400">
-                    <Camera size={32} className="mx-auto mb-2" />
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                    <Camera size={32} className="mb-2" />
                     <p>Click on a camera marker on the map</p>
                     <p className="text-sm">to view its live feed</p>
                   </div>
@@ -183,7 +162,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Alerts Section - More Minimal */}
+            {/* Alerts Section */}
             <div>
               <h2 className="text-lg font-medium mb-4 flex items-center">
                 <AlertCircle className="mr-2" size={18} />

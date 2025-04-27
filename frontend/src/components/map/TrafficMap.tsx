@@ -162,15 +162,73 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
   const [hoveredStreetId, setHoveredStreetId] = useState<number | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<number | null>(null);
   
-  // Vehicle animation state
-  const [vehiclePositions, setVehiclePositions] = useState(
-    emergencyVehicles.map(vehicle => vehicle.route[0])
-  );
-  const [currentRouteIndices, setCurrentRouteIndices] = useState(
-    emergencyVehicles.map(() => 0)
-  );
+  // Vehicle animation state with sessionStorage persistence
+  const [vehiclePositions, setVehiclePositions] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedPositions = sessionStorage.getItem('vehiclePositions');
+      if (savedPositions) {
+        try {
+          const parsed = JSON.parse(savedPositions);
+          if (Array.isArray(parsed) && parsed.length === emergencyVehicles.length) {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to load vehicle positions:', e);
+        }
+      }
+    }
+    return emergencyVehicles.map(vehicle => vehicle.route[0]);
+  });
+
+  const [currentRouteIndices, setCurrentRouteIndices] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedIndices = sessionStorage.getItem('currentRouteIndices');
+      if (savedIndices) {
+        try {
+          const parsed = JSON.parse(savedIndices);
+          if (Array.isArray(parsed) && parsed.length === emergencyVehicles.length) {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to load route indices:', e);
+        }
+      }
+    }
+    return emergencyVehicles.map(() => 0);
+  });
+
   const animationRef = useRef<number | null>(null);
   const startTimeRefs = useRef<number[]>(emergencyVehicles.map(() => Date.now()));
+
+  // Initialize startTimeRefs from sessionStorage if available
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedStartTimes = sessionStorage.getItem('startTimeRefs');
+      if (savedStartTimes) {
+        try {
+          const parsed = JSON.parse(savedStartTimes);
+          if (Array.isArray(parsed) && parsed.length === emergencyVehicles.length) {
+            startTimeRefs.current = parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to load start times:', e);
+        }
+      }
+    }
+  }, []);
+
+  // Save vehicle states to sessionStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('vehiclePositions', JSON.stringify(vehiclePositions));
+        sessionStorage.setItem('currentRouteIndices', JSON.stringify(currentRouteIndices));
+        sessionStorage.setItem('startTimeRefs', JSON.stringify(startTimeRefs.current));
+      } catch (e) {
+        console.warn('Failed to save vehicle states:', e);
+      }
+    }
+  }, [vehiclePositions, currentRouteIndices]);
 
   const selectedCamera = trafficCameras.find(cam => cam.id === selectedCameraId);
   const videoStream = useVideoStream({

@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-04-27T04:00:04.789106Z",
+  "timestamp": "2025-04-27T04:08:42.648282Z",
   "counts": {
-    "northbound": 4,
-    "southbound": 5,
-    "total": 9
+    "northbound": 0,
+    "southbound": 3,
+    "total": 3
   }
 }

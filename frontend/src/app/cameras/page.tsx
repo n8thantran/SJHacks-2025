@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Camera, MapPin, AlertTriangle, Search, Sliders, MoreVertical, Video, PauseCircle, RefreshCw, ChevronDown } from 'lucide-react';
+import CameraViewer from '@/components/cameras/CameraViewer';
 
 // Mock camera data
 const mockCameras = [
@@ -105,6 +106,7 @@ export default function CamerasPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
+  const [showViewer, setShowViewer] = useState(false);
   
   // Get status badge styling
   const getStatusBadge = (status: string) => {
@@ -142,13 +144,24 @@ export default function CamerasPage() {
     }
   };
   
+  const handleCameraClick = (cameraId: number) => {
+    setSelectedCamera(cameraId);
+    setShowViewer(true);
+  };
+
+  const handleCloseViewer = () => {
+    setShowViewer(false);
+    setSelectedCamera(null);
+  };
+  
   // Render camera grid view
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {filteredCameras.map(camera => (
         <div 
           key={camera.id}
-          className={`bg-slate-800 rounded-lg overflow-hidden border ${selectedCamera === camera.id ? 'border-blue-500' : 'border-slate-700'}`}
+          onClick={() => handleCameraClick(camera.id)}
+          className={`bg-slate-800 rounded-lg overflow-hidden border ${selectedCamera === camera.id ? 'border-blue-500' : 'border-slate-700'} cursor-pointer hover:border-blue-500/50 transition-colors`}
         >
           <div className="relative">
             <div className="aspect-video bg-slate-900 flex items-center justify-center">
@@ -176,7 +189,10 @@ export default function CamerasPage() {
             <div className="flex justify-between items-start">
               <h3 className="font-medium">{camera.name}</h3>
               <button 
-                onClick={() => toggleCameraSelection(camera.id)} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCameraSelection(camera.id);
+                }} 
                 className="p-1 text-slate-400 hover:text-slate-200"
               >
                 <MoreVertical size={16} />
@@ -333,6 +349,17 @@ export default function CamerasPage() {
         <div className="mb-4 text-sm text-slate-400">
           Showing {filteredCameras.length} of {cameras.length} cameras
         </div>
+        
+        {showViewer && selectedCamera && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="w-4/5 h-4/5 bg-slate-800 rounded-lg overflow-hidden">
+              <CameraViewer 
+                cameraId={selectedCamera} 
+                onClose={handleCloseViewer}
+              />
+            </div>
+          </div>
+        )}
         
         {/* Camera display */}
         {filteredCameras.length === 0 ? (

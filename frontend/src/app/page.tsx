@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import AlertPanel from '@/components/alerts/AlertPanel';
-import { MapPin, Car, Clock, AlertCircle, Camera } from 'lucide-react';
+import { MapPin, Car, Clock, AlertCircle, Camera, Pause, Play, TrendingUp, TrendingDown } from 'lucide-react';
+import { useVideoStream } from '@/hooks/useVideoStream';
+import { useCameraStats } from '@/hooks/useCameraStats';
 
 // Import TrafficMap component dynamically with no SSR
 const TrafficMap = dynamic(() => import('@/components/map/TrafficMap'), {
@@ -23,6 +25,13 @@ export default function Dashboard() {
     name: string;
     feedUrl: string;
   } | null>(null);
+  
+  const videoStream = useVideoStream({
+    url: selectedCamera?.feedUrl || '',
+    refreshRate: 33, // ~30fps
+  });
+  
+  const { stats, error } = useCameraStats();
   
   useEffect(() => {
     setIsClient(true);
@@ -112,13 +121,26 @@ export default function Dashboard() {
                   </button>
                 )}
               </div>
-              <div className="w-full h-64 bg-black rounded-lg overflow-hidden flex items-center justify-center mb-4">
+              <div className="w-full h-64 bg-black rounded-lg overflow-hidden flex items-center justify-center mb-4 relative">
                 {selectedCamera ? (
-                  <iframe 
-                    src={selectedCamera.feedUrl}
-                    className="w-full h-full"
-                    title={`${selectedCamera.name} Live Feed`}
-                  />
+                  <>
+                    <img 
+                      src={videoStream.streamUrl}
+                      className="w-full h-full object-cover"
+                      alt={`${selectedCamera.name} Live Feed`}
+                      style={{ imageRendering: 'auto' }}
+                    />
+                    <button
+                      onClick={videoStream.toggleStream}
+                      className="absolute bottom-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                    >
+                      {videoStream.isStreaming ? (
+                        <Pause size={16} className="text-white" />
+                      ) : (
+                        <Play size={16} className="text-white" />
+                      )}
+                    </button>
+                  </>
                 ) : (
                   <div className="text-center text-slate-400">
                     <Camera size={32} className="mx-auto mb-2" />
@@ -132,19 +154,30 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-700/50 rounded-lg p-3">
                   <p className="text-slate-400 text-sm">Vehicles Detected</p>
-                  <p className="text-2xl font-semibold">24</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.counts.total || 0}
+                  </p>
                 </div>
                 <div className="bg-slate-700/50 rounded-lg p-3">
-                  <p className="text-slate-400 text-sm">Average Speed</p>
-                  <p className="text-2xl font-semibold">35 mph</p>
+                  <p className="text-slate-400 text-sm">Northbound</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.counts.northbound || 0}
+                  </p>
                 </div>
                 <div className="bg-slate-700/50 rounded-lg p-3">
-                  <p className="text-slate-400 text-sm">Pedestrians</p>
-                  <p className="text-2xl font-semibold">8</p>
+                  <p className="text-slate-400 text-sm">Southbound</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.counts.southbound || 0}
+                  </p>
                 </div>
                 <div className="bg-slate-700/50 rounded-lg p-3">
                   <p className="text-slate-400 text-sm">Traffic Flow</p>
-                  <p className="text-2xl font-semibold text-emerald-500">Good</p>
+                  <p className="text-2xl font-semibold text-emerald-500">
+                    {stats?.counts.total ? (
+                      stats.counts.total > 50 ? 'Heavy' : 
+                      stats.counts.total > 20 ? 'Moderate' : 'Light'
+                    ) : 'No Data'}
+                  </p>
                 </div>
               </div>
             </div>

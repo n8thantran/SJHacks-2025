@@ -3,12 +3,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Map, { Marker, Popup, Layer, Source } from 'react-map-gl/mapbox';
 import type { LayerProps } from 'react-map-gl/mapbox';
-import { Ambulance, Camera } from 'lucide-react';
+import { Ambulance, Camera, Pause, Play } from 'lucide-react';
 import { getStatusColor } from '@/lib/mapbox-globals';
 import MapboxContainer from './MapboxContainer';
 import MapController from './MapController';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import mapboxgl from 'mapbox-gl';
+import { useVideoStream } from '@/hooks/useVideoStream';
 
 // Set access token for Mapbox
 if (process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
@@ -65,7 +66,7 @@ const trafficCameras = [
     lat: 37.3355, 
     lng: -121.8865, 
     name: "Main Intersection Camera",
-    feedUrl: "https://example.com/camera-feed-1" // Replace with actual camera feed URL
+    feedUrl: "http://localhost:8000/video-feed" // Updated to use our FastAPI endpoint
   }
 ];
 
@@ -117,6 +118,50 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
     content: React.ReactNode;
   } | null>(null);
   const [hoveredStreetId, setHoveredStreetId] = useState<number | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<number | null>(null);
+  
+  const selectedCamera = trafficCameras.find(cam => cam.id === selectedCameraId);
+  const videoStream = useVideoStream({
+    url: selectedCamera?.feedUrl || '',
+    refreshRate: 33,
+  });
+
+  // Stop video processing when component unmounts
+  useEffect(() => {
+    return () => {
+      // Stop video processing on unmount
+      fetch('http://localhost:8000/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).catch(console.error);
+    };
+  }, []);
+
+  // Stop video processing when camera is deselected
+  useEffect(() => {
+    if (!selectedCameraId) {
+      fetch('http://localhost:8000/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).catch(console.error);
+    }
+  }, [selectedCameraId]);
+
+  // Stop video processing when popup is closed
+  useEffect(() => {
+    if (!popupInfo) {
+      fetch('http://localhost:8000/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).catch(console.error);
+    }
+  }, [popupInfo]);
 
   // Client-side only operation
   useEffect(() => {
@@ -166,15 +211,59 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
       }
     });
     
-    // Close popup when clicking anywhere else on the map
+    // Handle map click to deselect camera
     map.on('click', (e) => {
-      // Check if the click was not on a street feature
-      const features = map.queryRenderedFeatures(e.point, { layers: ['street-lines'] });
+      // Check if the click was on a camera marker
+      const features = map.queryRenderedFeatures(e.point, { 
+        layers: ['camera-markers'] 
+      });
+      
+      // If click was not on a camera marker, deselect the camera
       if (features.length === 0) {
+        setSelectedCameraId(null);
         setPopupInfo(null);
       }
     });
   }, []);
+
+  const handleCameraClick = async (camera: { id: number; name: string; feedUrl: string; lat: number; lng: number }) => {
+    try {
+      // Send POST request to start video processing
+      const response = await fetch('http://localhost:8000/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start video processing');
+      }
+
+      // Call the original onCameraSelect if provided
+      if (onCameraSelect) {
+        onCameraSelect({
+          name: camera.name,
+          feedUrl: camera.feedUrl
+        });
+      }
+      setSelectedCameraId(camera.id);
+    } catch (error) {
+      console.error('Error starting video processing:', error);
+      // Show error state
+      setSelectedCameraId(null);
+      setPopupInfo({
+        longitude: camera.lng,
+        latitude: camera.lat,
+        content: (
+          <div className="text-black">
+            <h3 className="font-bold text-red-500">Camera Offline</h3>
+            <p>Unable to connect to camera feed</p>
+          </div>
+        )
+      });
+    }
+  };
 
   if (!isClient) {
     return null;
@@ -210,7 +299,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
         style={{ width: '100%', height: '100%', borderRadius: '0.5rem' }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         onLoad={onMapLoad}
-        interactiveLayerIds={['street-lines']}
+        interactiveLayerIds={['street-lines', 'camera-markers']}
       >
         {/* Map controller for following emergency vehicles */}
         {followEmergency && emergencyVehicles.length > 0 && (
@@ -264,34 +353,18 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
             offset={[-50, 15]}
           >
             <div 
-              className="text-blue-500 cursor-pointer relative"
-              onClick={() => {
-                if (onCameraSelect) {
-                  onCameraSelect({
-                    name: camera.name,
-                    feedUrl: camera.feedUrl
-                  });
-                }
-                setPopupInfo({
-                  longitude: camera.lng,
-                  latitude: camera.lat,
-                  content: (
-                    <div className="text-black">
-                      <h3 className="font-bold mb-2">{camera.name}</h3>
-                      <div className="w-64 h-48 bg-gray-200 rounded-lg overflow-hidden">
-                        <iframe 
-                          src={camera.feedUrl}
-                          className="w-full h-full"
-                          title={`${camera.name} Live Feed`}
-                        />
-                      </div>
-                    </div>
-                  )
-                });
+              className={`cursor-pointer relative ${
+                selectedCameraId === camera.id ? 'text-green-500' : 'text-blue-500'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent click from reaching map
+                handleCameraClick(camera);
               }}
             >
               <div className="relative">
-                <div className="absolute -top-1 -left-1 w-8 h-8 bg-blue-500/20 rounded-full"></div>
+                <div className={`absolute -top-1 -left-1 w-8 h-8 ${
+                  selectedCameraId === camera.id ? 'bg-green-500/20' : 'bg-blue-500/20'
+                } rounded-full`}></div>
                 <Camera size={24} className="relative" />
               </div>
             </div>

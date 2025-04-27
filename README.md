@@ -1,7 +1,7 @@
 # TrafficO
 
 ## Summary
-TrafficO is a next-generation traffic management platform that brings real-time intelligence to city streets. Our live dashboard visualizes traffic flow, congestion, and emergency vehicle movement on an interactive map of downtown San Jose. Using advanced AI, TrafficO detects vehicles—including ambulances and fire-trucks directly from camera feeds, tracks their movement, and dynamically adapts traffic signals to clear the way for first responders.
+TrafficO is a next-generation traffic management platform that brings real-time intelligence to city streets. Our live dashboard visualizes traffic flow, congestion, and emergency vehicle movement on an interactive map of downtown San Jose. Using advanced AI, TrafficO detects vehicles, including ambulances and fire trucks, directly from camera feeds, tracks their movement, and dynamically adapts traffic signals to clear the way for first responders.
 
 ## Features
 - Live Map Dashboard

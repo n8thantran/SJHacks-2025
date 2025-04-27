@@ -74,6 +74,38 @@ export default function Dashboard() {
     }
   };
 
+  // Automatically send random light commands every 10 seconds
+  useEffect(() => {
+    const messages = [
+      "an ambulance is going west",
+      "an ambulance is going east",
+      "an ambulance is going north",
+    ];
+    const intervalId = setInterval(async () => {
+      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+      console.log(`Sending command: ${randomMessage}`);
+      try {
+        const response = await fetch('http://localhost:5052/lights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text: randomMessage }),
+        });
+        if (!response.ok) {
+          console.error(`Failed to send command: ${response.status} ${await response.text()}`);
+        } else {
+          console.log('Automatic light command sent successfully');
+        }
+      } catch (error) {
+        console.error('Error sending automatic light command:', error);
+      }
+    }, 10000); // 10 seconds
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => clearInterval(intervalId);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   return (
     <DashboardLayout>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">

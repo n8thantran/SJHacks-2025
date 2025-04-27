@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import AlertPanel from '@/components/alerts/AlertPanel';
-import { MapPin, Car, Clock, AlertCircle, Camera, Pause, Play, TrendingUp, TrendingDown } from 'lucide-react';
+import { MapPin, Car, Clock, AlertCircle, Camera, Pause, Play } from 'lucide-react';
 import { useVideoStream } from '@/hooks/useVideoStream';
 import { useCameraStats } from '@/hooks/useCameraStats';
 
@@ -124,6 +124,7 @@ export default function Dashboard() {
               <div className="w-full h-64 bg-black rounded-lg overflow-hidden flex items-center justify-center mb-4 relative">
                 {selectedCamera ? (
                   <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={videoStream.streamUrl}
                       className="w-full h-full object-cover"

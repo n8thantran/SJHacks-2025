@@ -55,7 +55,51 @@ const streetSegments = [
 
 // Mock emergency vehicle data
 const emergencyVehicles = [
-  { id: 1, lat: 37.3350, lng: -121.8860, type: "ambulance", heading: 45, speed: 45 },
+  { 
+    id: 1, 
+    type: "ambulance", 
+    heading: 0, 
+    speeds: [35, 25, 20, 30, 15, 40, 35], // Different speeds for different segments
+    route: [
+      { lat: 37.335830, lng: -121.886026 },
+      { lat: 37.328644, lng: -121.880680 },
+      { lat: 37.329611, lng: -121.878500 },
+      { lat: 37.332555, lng: -121.880685 },
+      { lat: 37.333040, lng: -121.879653 },
+      { lat: 37.335053, lng: -121.875453 },
+      { lat: 37.339373, lng: -121.878686 },
+      { lat: 37.335831, lng: -121.886034 }
+    ]
+  },
+  {
+    id: 2,
+    type: "ambulance",
+    heading: 0,
+    speeds: [40, 30, 25, 35, 20, 45, 30, 25, 35, 40, 30, 35, 25, 30, 35, 40, 35, 40, 35, 35], // Added speeds for all segments
+    route: [
+      { lat: 37.326093, lng: -121.885250 },
+      { lat: 37.326844, lng: -121.883677 },
+      { lat: 37.327419, lng: -121.884041 },
+      { lat: 37.328609, lng: -121.884888 },
+      { lat: 37.329583, lng: -121.882841 },
+      { lat: 37.332467, lng: -121.884973 },
+      { lat: 37.337142, lng: -121.888464 },
+      { lat: 37.339192, lng: -121.884218 },
+      { lat: 37.337336, lng: -121.882830 },
+      { lat: 37.339846, lng: -121.877690 },
+      { lat: 37.336984, lng: -121.875565 },
+      { lat: 37.336012, lng: -121.877537 },
+      { lat: 37.324302, lng: -121.868837 },
+      { lat: 37.320311, lng: -121.877264 },
+      { lat: 37.319350, lng: -121.878787 },
+      { lat: 37.319101, lng: -121.881304 },
+      { lat: 37.319282, lng: -121.881609 },
+      { lat: 37.318934, lng: -121.882226 },
+      { lat: 37.325210, lng: -121.886885 },
+      { lat: 37.325361, lng: -121.886816 },
+      { lat: 37.326093, lng: -121.885250 }
+    ]
+  }
 ];
 
 // Mock traffic camera data
@@ -117,11 +161,122 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
     content: React.ReactNode;
   } | null>(null);
   const [hoveredStreetId, setHoveredStreetId] = useState<number | null>(null);
+  const [vehiclePositions, setVehiclePositions] = useState(
+    emergencyVehicles.map(vehicle => vehicle.route[0])
+  );
+  const [currentRouteIndices, setCurrentRouteIndices] = useState(
+    emergencyVehicles.map(() => 0)
+  );
+  const animationRef = useRef<number | null>(null);
+  const startTimeRefs = useRef<number[]>(emergencyVehicles.map(() => Date.now()));
+  const lastFrameTimeRef = useRef<number>(Date.now());
 
   // Client-side only operation
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Animation effect for vehicle movement
+  useEffect(() => {
+    if (!isClient) return;
+
+    const animate = (timestamp: number) => {
+      // Calculate delta time since last frame
+      const currentTime = Date.now();
+      const deltaTime = currentTime - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = currentTime;
+      
+      // Update positions for all vehicles independently
+      const newPositions = emergencyVehicles.map((vehicle, index) => {
+        const currentSegment = vehicle.route[currentRouteIndices[index]];
+        const nextSegment = vehicle.route[(currentRouteIndices[index] + 1) % vehicle.route.length];
+        
+        // Get the current speed for this segment
+        const currentSpeed = vehicle.speeds[currentRouteIndices[index]];
+        // Convert speed from mph to meters per second (1 mph ≈ 0.44704 m/s)
+        const speedMps = currentSpeed * 0.44704;
+        
+        // Calculate distance using Haversine formula for more accurate results
+        const R = 6371000; // Earth's radius in meters
+        const lat1 = currentSegment.lat * Math.PI / 180;
+        const lat2 = nextSegment.lat * Math.PI / 180;
+        const deltaLat = (nextSegment.lat - currentSegment.lat) * Math.PI / 180;
+        const deltaLng = (nextSegment.lng - currentSegment.lng) * Math.PI / 180;
+        
+        const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                 Math.cos(lat1) * Math.cos(lat2) *
+                 Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        const segmentDuration = (distance / speedMps) * 1000; // Convert to milliseconds
+        
+        const elapsedTime = currentTime - startTimeRefs.current[index];
+        const progress = Math.min(Math.max(elapsedTime / segmentDuration, 0), 1); // Ensure progress is between 0 and 1
+        
+        // Calculate new position using linear interpolation with safeguards
+        const newLat = currentSegment.lat + (nextSegment.lat - currentSegment.lat) * progress;
+        const newLng = currentSegment.lng + (nextSegment.lng - currentSegment.lng) * progress;
+        
+        // Ensure coordinates are valid numbers
+        if (isNaN(newLat) || isNaN(newLng)) {
+          console.warn(`Invalid coordinates calculated for vehicle ${index}:`, { newLat, newLng });
+          return currentSegment; // Return current position if calculation failed
+        }
+        
+        return { lat: newLat, lng: newLng };
+      });
+      
+      setVehiclePositions(newPositions);
+      
+      // Check if any vehicle needs to move to the next segment
+      const newRouteIndices = [...currentRouteIndices];
+      let needsUpdate = false;
+      
+      emergencyVehicles.forEach((vehicle, index) => {
+        const currentSegment = vehicle.route[currentRouteIndices[index]];
+        const nextSegment = vehicle.route[(currentRouteIndices[index] + 1) % vehicle.route.length];
+        const currentSpeed = vehicle.speeds[currentRouteIndices[index]];
+        const speedMps = currentSpeed * 0.44704;
+        
+        // Calculate distance using Haversine formula
+        const R = 6371000;
+        const lat1 = currentSegment.lat * Math.PI / 180;
+        const lat2 = nextSegment.lat * Math.PI / 180;
+        const deltaLat = (nextSegment.lat - currentSegment.lat) * Math.PI / 180;
+        const deltaLng = (nextSegment.lng - currentSegment.lng) * Math.PI / 180;
+        
+        const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                 Math.cos(lat1) * Math.cos(lat2) *
+                 Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        const segmentDuration = (distance / speedMps) * 1000;
+        
+        if (currentTime - startTimeRefs.current[index] >= segmentDuration) {
+          // When reaching the end of the route, smoothly transition to the start
+          newRouteIndices[index] = (currentRouteIndices[index] + 1) % (vehicle.route.length - 1);
+          startTimeRefs.current[index] = currentTime;
+          needsUpdate = true;
+        }
+      });
+      
+      if (needsUpdate) {
+        setCurrentRouteIndices(newRouteIndices);
+      }
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isClient, currentRouteIndices]);
 
   // Get the native Mapbox instance
   const onMapLoad = useCallback((evt: { target: MapboxMap }) => {
@@ -215,7 +370,7 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
         {/* Map controller for following emergency vehicles */}
         {followEmergency && emergencyVehicles.length > 0 && (
           <MapController 
-            emergencyVehicle={emergencyVehicles[0]} 
+            emergencyVehicle={vehiclePositions[0]} 
             followEmergency={followEmergency}
             mapRef={mapRef}
           />
@@ -228,23 +383,27 @@ export default function TrafficMap({ followEmergency = false, onCameraSelect }: 
         </Source>
 
         {/* Render emergency vehicles as markers */}
-        {emergencyVehicles.map((vehicle) => (
+        {emergencyVehicles.map((vehicle, index) => (
           <Marker
             key={vehicle.id}
-            longitude={vehicle.lng}
-            latitude={vehicle.lat}
+            longitude={vehiclePositions[index].lng}
+            latitude={vehiclePositions[index].lat}
           >
             <div 
-              className="text-red-500 cursor-pointer"
+              className="text-red-500 cursor-pointer transition-transform duration-100"
+              style={{
+                transform: `rotate(${vehicle.heading}deg)`,
+              }}
               onClick={() => {
                 setPopupInfo({
-                  longitude: vehicle.lng,
-                  latitude: vehicle.lat,
+                  longitude: vehiclePositions[index].lng,
+                  latitude: vehiclePositions[index].lat,
                   content: (
                     <div className="text-black">
-                      <h3 className="font-bold">Emergency Vehicle</h3>
+                      <h3 className="font-bold">Emergency Vehicle {vehicle.id}</h3>
                       <p>Type: {vehicle.type}</p>
-                      <p>Speed: {vehicle.speed} mph</p>
+                      <p>Speed: {vehicle.speeds[currentRouteIndices[index]]} mph</p>
+                      <p>Current Segment: {currentRouteIndices[index] + 1}/{vehicle.route.length}</p>
                     </div>
                   )
                 });

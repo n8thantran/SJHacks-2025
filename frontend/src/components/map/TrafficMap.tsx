@@ -16,6 +16,7 @@ if (process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
 }
 
 // Downtown San Jose center coordinates
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sanjose = { lat: 37.3352, lng: -121.8863 };
 
 // Street segments for perfect cross shape

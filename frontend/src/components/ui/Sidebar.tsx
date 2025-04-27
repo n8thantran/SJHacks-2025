@@ -7,10 +7,8 @@ import {
   AlertCircle, 
   Settings, 
   Cross, 
-  Bell, 
   Clock, 
-  Camera, 
-  HelpCircle 
+  Camera 
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -48,11 +46,11 @@ export default function Sidebar() {
   useEffect(() => {
     // Update system status every second
     const interval = setInterval(() => {
-      setSystemStatus(prev => ({
+      setSystemStatus({
         uptime: 97 + Math.random() * 2, // Random between 97-99
         responseTime: 90 + Math.random() * 30, // Random between 90-120
         lastCheck: 0
-      }));
+      });
     }, 1000);
 
     return () => {

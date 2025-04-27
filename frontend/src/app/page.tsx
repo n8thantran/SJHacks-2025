@@ -28,6 +28,7 @@ export default function Dashboard() {
     setIsClient(true);
   }, []);
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEmergencyToggle = () => {
     setFollowEmergency(!followEmergency);
   };

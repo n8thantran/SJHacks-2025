@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, Bell, Menu, User, LogOut, Settings, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Bell, Menu, User, LogOut, Settings } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import Link from 'next/link';
 
 export default function Header() {
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -18,16 +17,6 @@ export default function Header() {
     { id: 3, type: 'info', message: 'System update completed successfully', time: '1 hour ago' },
     { id: 4, type: 'success', message: 'Traffic flow improved at Park Ave', time: '2 hours ago' }
   ];
-
-  useEffect(() => {
-    // Set initial theme
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
-  }, []);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.setAttribute('data-theme', !isDarkMode ? 'dark' : 'light');
-  };
   
   return (
     <>
@@ -56,12 +45,6 @@ export default function Header() {
         </div>
         
         <div className="flex items-center gap-2">
-          <button 
-            className="p-2 rounded-md text-foreground hover:bg-background/20"
-            onClick={toggleTheme}
-          >
-            {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
           
           <div className="relative">
             <button 

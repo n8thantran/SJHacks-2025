@@ -60,11 +60,11 @@ export default function Sidebar() {
   
   // Navigation item component
   const NavItem = ({ item }: { item: NavItem }) => {
-    // Check if current path matches this nav item's href
-    // For the root path ('/'), only match exactly, otherwise check if pathname starts with the href
+    // Enhanced isActive logic to properly handle route matching
     const isActive = 
-      (item.href === '/' && pathname === '/') || 
-      (item.href !== '/' && pathname.startsWith(item.href));
+      item.href === '/' 
+        ? pathname === '/' 
+        : pathname === item.href || pathname.startsWith(`${item.href}/`);
     
     return (
       <Link 
@@ -74,6 +74,7 @@ export default function Sidebar() {
             ? 'bg-blue-500 text-white' 
             : 'text-slate-300 hover:bg-slate-700'
         }`}
+        prefetch={true}
       >
         {item.icon}
         <span>{item.name}</span>
@@ -87,9 +88,8 @@ export default function Sidebar() {
   };
   
   return (
-    <aside className="w-64 bg-card border-r border-border h-full py-6 hidden md:block">
-      
-      <div className="px-4 mb-6">
+    <aside className="w-64 h-full flex flex-col bg-card border-r border-border py-6 hidden md:flex">
+      <div className="px-4 mb-6 flex-shrink-0">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
           Main
         </h2>
@@ -100,7 +100,7 @@ export default function Sidebar() {
         </nav>
       </div>
       
-      <div className="px-4">
+      <div className="px-4 flex-shrink-0">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
           System
         </h2>
@@ -111,22 +111,26 @@ export default function Sidebar() {
         </nav>
       </div>
       
-      <div className="mt-auto px-4 pt-6">
-        <div className="bg-card/50 rounded-lg p-4">
-          <h3 className="font-medium mb-2 flex items-center gap-2">
-            <AlertCircle size={16} className="text-warning" />
-            System Status
-          </h3>
-          <p className="text-xs text-muted-foreground mb-3">
-            All systems operational. Last check: Now
-          </p>
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Uptime:</span>
-            <span className="text-accent">{systemStatus.uptime.toFixed(1)}%</span>
+      <div className="mt-auto px-4 pt-6 flex-shrink-0 sticky bottom-0">
+        <div className="bg-slate-800/70 rounded-lg shadow-lg border border-slate-700/50">
+          <div className="p-3 border-b border-slate-700/50">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle size={14} className="text-amber-400" />
+                System Status
+              </h3>
+              <span className="text-xs px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-sm">Online</span>
+            </div>
           </div>
-          <div className="flex justify-between text-xs mt-1">
-            <span className="text-muted-foreground">Response Time:</span>
-            <span className="text-accent">{systemStatus.responseTime.toFixed(0)}ms</span>
+          <div className="p-3">
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-slate-400">Uptime:</span>
+              <span className="text-emerald-400 font-medium">{systemStatus.uptime.toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-400">Response Time:</span>
+              <span className="text-blue-400 font-medium">{systemStatus.responseTime.toFixed(0)}ms</span>
+            </div>
           </div>
         </div>
       </div>

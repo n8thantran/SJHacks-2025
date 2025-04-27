@@ -71,8 +71,8 @@ npm run dev
 ## Project Structure
 ```
 SJHack-2025/
-├── agents/         # 
-├── backend/           # 
+├── agents/             # 
+├── backend/            # 
 └── frontend/           # Frontend application
 ```
 

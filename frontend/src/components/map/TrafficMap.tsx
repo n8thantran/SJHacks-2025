@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Map, { Marker, Popup, Layer, Source } from 'react-map-gl/mapbox';
 import type { LayerProps } from 'react-map-gl/mapbox';
-import { Ambulance } from 'lucide-react';
+import { Ambulance, Camera } from 'lucide-react';
 import { getStatusColor } from '@/lib/mapbox-globals';
 import MapboxContainer from './MapboxContainer';
 import MapController from './MapController';
@@ -11,8 +11,8 @@ import type { Map as MapboxMap } from 'mapbox-gl';
 import mapboxgl from 'mapbox-gl';
 
 // Set access token for Mapbox
-if (process.env.MAPBOX_ACCESS_TOKEN) {
-  mapboxgl.accessToken = process.env.MAPBOX_ACCESS_TOKEN;
+if (process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
+  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 }
 
 // Downtown San Jose center coordinates
@@ -57,6 +57,17 @@ const emergencyVehicles = [
   { id: 1, lat: 37.3350, lng: -121.8860, type: "ambulance", heading: 45, speed: 45 },
 ];
 
+// Mock traffic camera data
+const trafficCameras = [
+  { 
+    id: 1, 
+    lat: 37.3355, 
+    lng: -121.8865, 
+    name: "Main Intersection Camera",
+    feedUrl: "https://example.com/camera-feed-1" // Replace with actual camera feed URL
+  }
+];
+
 // Create street segments layer data
 const streetLayersData = {
   type: 'FeatureCollection',
@@ -93,9 +104,10 @@ const streetLayerStyle: LayerProps = {
 
 interface TrafficMapProps {
   followEmergency?: boolean;
+  onCameraSelect?: (camera: { name: string; feedUrl: string }) => void;
 }
 
-export default function TrafficMap({ followEmergency = false }: TrafficMapProps) {
+export default function TrafficMap({ followEmergency = false, onCameraSelect }: TrafficMapProps) {
   const [isClient, setIsClient] = useState(false);
   const mapRef = useRef<MapboxMap | null>(null);
   const [popupInfo, setPopupInfo] = useState<{
@@ -186,7 +198,7 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
   return (
     <MapboxContainer>
       <Map
-        mapboxAccessToken={process.env.MAPBOX_ACCESS_TOKEN}
+        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
         initialViewState={{
           longitude: -121.8863,
           latitude: 37.3352,
@@ -238,6 +250,49 @@ export default function TrafficMap({ followEmergency = false }: TrafficMapProps)
               }}
             >
               <Ambulance size={24} fill="currentColor" />
+            </div>
+          </Marker>
+        ))}
+
+        {/* Render traffic cameras as markers */}
+        {trafficCameras.map((camera) => (
+          <Marker
+            key={camera.id}
+            longitude={camera.lng}
+            latitude={camera.lat}
+            offset={[-50, 15]}
+          >
+            <div 
+              className="text-blue-500 cursor-pointer relative"
+              onClick={() => {
+                if (onCameraSelect) {
+                  onCameraSelect({
+                    name: camera.name,
+                    feedUrl: camera.feedUrl
+                  });
+                }
+                setPopupInfo({
+                  longitude: camera.lng,
+                  latitude: camera.lat,
+                  content: (
+                    <div className="text-black">
+                      <h3 className="font-bold mb-2">{camera.name}</h3>
+                      <div className="w-64 h-48 bg-gray-200 rounded-lg overflow-hidden">
+                        <iframe 
+                          src={camera.feedUrl}
+                          className="w-full h-full"
+                          title={`${camera.name} Live Feed`}
+                        />
+                      </div>
+                    </div>
+                  )
+                });
+              }}
+            >
+              <div className="relative">
+                <div className="absolute -top-1 -left-1 w-8 h-8 bg-blue-500/20 rounded-full"></div>
+                <Camera size={24} className="relative" />
+              </div>
             </div>
           </Marker>
         ))}

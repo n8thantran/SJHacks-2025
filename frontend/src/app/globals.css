@@ -8,6 +8,41 @@
   --accent: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
+  --border: #1e293b;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --muted: #64748b;
+  --muted-foreground: #94a3b8;
+}
+
+[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  --primary: #3b82f6;
+  --secondary: #64748b;
+  --accent: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --border: #e2e8f0;
+  --card: #f8fafc;
+  --card-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+}
+
+[data-theme="dark"] {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --primary: #3b82f6;
+  --secondary: #64748b;
+  --accent: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --border: #1e293b;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --muted: #64748b;
+  --muted-foreground: #94a3b8;
 }
 
 @theme inline {
@@ -18,15 +53,13 @@
   --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -44,17 +77,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--muted);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--muted-foreground);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--foreground);
 }
 
 /* Map styling */
@@ -66,22 +99,22 @@ body {
 
 /* Mapbox Popup styling */
 .mapboxgl-popup-content {
-  background-color: rgba(30, 41, 59, 0.9);
-  color: #f8fafc;
+  background-color: var(--card);
+  color: var(--card-foreground);
   border-radius: 0.5rem;
-  border: 1px solid rgba(100, 116, 139, 0.5);
+  border: 1px solid var(--border);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   padding: 0.75rem;
   font-family: var(--font-sans);
 }
 
 .mapboxgl-popup-close-button {
-  color: #f8fafc;
+  color: var(--card-foreground);
   font-size: 1.25rem;
   padding: 0 0.5rem;
 }
 
 .mapboxgl-popup-tip {
-  border-top-color: rgba(30, 41, 59, 0.9) !important;
-  border-bottom-color: rgba(30, 41, 59, 0.9) !important;
+  border-top-color: var(--card) !important;
+  border-bottom-color: var(--card) !important;
 }

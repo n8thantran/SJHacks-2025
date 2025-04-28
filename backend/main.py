@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import cv2
 import numpy as np
-from ultralytics import YOLO
+# from ultralytics import YOLO # Removed YOLO
+import requests # Added requests
+import base64 # Added base64
 from collections import defaultdict
 import asyncio
 import signal
@@ -12,31 +14,32 @@ import json
 import time
 from datetime import datetime
 import os
+from dotenv import load_dotenv # Added dotenv
 import uvicorn
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configuration
 CONFIG = {
     'video_path': 'street.mp4',
-    'model_path': 'yolov8n.pt',
+    # 'model_path': 'yolov8n.pt', # Removed YOLO model path
     'output_path': 'output.mp4',
     'frame_scale': 0.4,  # Scale down frames to 40% of original size
-    'counting_line_position': 0.6,  # Counting line at 60% of frame height
-    'tracker_config': {
-        'tracker': 'bytetrack.yaml',
-        'conf': 0.2,
-        'classes': [0, 2, 3, 5, 7],  # person, car, motorcycle, bus, truck
-        'persist': True,
-        'iou': 0.5,
-        'max_det': 300
-    },
-    'class_names': {
-        0: 'person',
-        2: 'car',
-        3: 'motorcycle',
-        5: 'bus',
-        7: 'truck'
+    'counting_line_position': 0.6,  # Counting line at 60% of frame height - MAYBE NOT NEEDED if workflow handles counting
+    # 'tracker_config': { ... }, # Removed YOLO tracker config
+    # 'class_names': { ... } # Removed YOLO class names
+    'roboflow': {
+        'workflow_url': "https://serverless.roboflow.com/infer/workflows/sjhacks/detect-count-and-visualize-2", # Specific workflow URL
+        'api_key': os.getenv("ROBOFLOW_API_KEY"), # Use environment variable
+        # 'workspace_name': "sjhacks", # Not needed for direct URL call
+        # 'workflow_id': "detect-count-and-visualize-2" # Not needed for direct URL call
     }
 }
+
+# Validate Roboflow API key
+if not CONFIG['roboflow']['api_key']:
+    raise ValueError("ROBOFLOW_API_KEY environment variable not set.")
 
 # Initialize FastAPI app
 app = FastAPI(title="TrafficO - Video Processing API")
@@ -57,7 +60,8 @@ app.mount("/static", StaticFiles(directory="."), name="static")
 stop_processing = False
 current_frame = None
 processing_task = None
-model = None
+# model = None # Removed YOLO model instance
+# client = None # Removed Roboflow client instance
 traffic_counts = {
     'northbound': 0,
     'southbound': 0,
@@ -95,12 +99,18 @@ async def get_traffic_data():
 
 async def process_video():
     """Main video processing function"""
-    global stop_processing, current_frame, model, traffic_counts
+    # Use requests.Session for potential connection reuse
+    session = requests.Session()
+    global stop_processing, current_frame, traffic_counts
     
     try:
-        # Load YOLOv8 model
-        model = YOLO(CONFIG['model_path'])
-        
+        # # Initialize Roboflow client # Removed
+        # client = InferenceHTTPClient(
+        #     api_url=CONFIG['roboflow']['api_url'],
+        #     api_key=CONFIG['roboflow']['api_key']
+        # )
+        # print("Roboflow client initialized.")
+
         # Open video file
         cap = cv2.VideoCapture(CONFIG['video_path'])
         
@@ -113,28 +123,28 @@ async def process_video():
         original_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = cap.get(cv2.CAP_PROP_FPS)
         
-        # Calculate scaled dimensions
+        # Calculate scaled dimensions (optional, workflow might handle resizing)
         width = int(original_width * CONFIG['frame_scale'])
         height = int(original_height * CONFIG['frame_scale'])
         
         # Create video writer for output
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(CONFIG['output_path'], fourcc, fps, (width, height))
+        out = cv2.VideoWriter(CONFIG['output_path'], fourcc, fps, (width, height)) # Adjust size if workflow provides visualization
         
-        # Initialize tracking variables
-        object_history = defaultdict(list)
-        crossing_status = {}
+        # Initialize tracking variables (MAYBE NOT NEEDED if workflow handles counting/tracking)
+        # object_history = defaultdict(list)
+        # crossing_status = {}
         
-        # Reset traffic counts
+        # Reset traffic counts (workflow might overwrite this)
         traffic_counts = {
             'northbound': 0,
             'southbound': 0,
             'total': 0
         }
         
-        # Calculate counting line position
-        line_y = int(height * CONFIG['counting_line_position'])
-        mid_x = width // 2
+        # Calculate counting line position (MAYBE NOT NEEDED)
+        # line_y = int(height * CONFIG['counting_line_position'])
+        # mid_x = width // 2
         
         while cap.isOpened() and not stop_processing:
             ret, frame = cap.read()
@@ -145,70 +155,95 @@ async def process_video():
                 await asyncio.sleep(0.1) # Brief pause before restarting
                 continue # Continue to the next loop iteration to read the first frame
             
-            # Resize frame
-            frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
+            # Resize frame (optional, can be done by Roboflow)
+            frame_resized = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
             
-            # Run YOLO detection with tracking
-            results = model.track(frame, **CONFIG['tracker_config'])
-            
-            if results and results[0].boxes:
-                boxes = results[0].boxes
-                
-                for box in boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    track_id = int(box.id[0]) if box.id is not None else None
-                    class_id = int(box.cls[0])
-                    
-                    if track_id is not None:
-                        # Draw bounding box and label
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        label = f"{CONFIG['class_names'].get(class_id, 'unknown')} {track_id}"
-                        cv2.putText(frame, label, (x1, y1 - 10),
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                        
-                        # Track object position
-                        centroid = (int((x1 + x2)/2), int((y1 + y2)/2))
-                        object_history[track_id].append(centroid)
-                        if len(object_history[track_id]) > 30:
-                            object_history[track_id].pop(0)
-                        
-                        # Determine direction and count
-                        box_center_y = (y1 + y2) // 2
-                        direction = 'northbound' if box_center_y < line_y else 'southbound'
-                        
-                        if track_id not in crossing_status:
-                            crossing_status[track_id] = {'crossed': False}
-                        
-                        if not crossing_status[track_id]['crossed']:
-                            if (y1 <= line_y <= y2):
-                                crossing_status[track_id]['crossed'] = True
-                                traffic_counts[direction] += 1
-                                traffic_counts['total'] += 1
-                        
-                        # Draw trajectory
-                        if len(object_history[track_id]) > 1:
-                            points = np.array(object_history[track_id], np.int32)
-                            cv2.polylines(frame, [points], False, (0, 0, 255), 2)
-            
-            # Add overlay elements
-            cv2.line(frame, (0, line_y), (width, line_y), (0, 255, 255), 2)
-            cv2.line(frame, (mid_x, 0), (mid_x, height), (255, 0, 0), 2)
-            
-            
-            # Update current frame and write to output
-            current_frame = frame
-            out.write(frame)
-            
+            # --- Run Roboflow Workflow via HTTP POST ---
+            try:
+                # Encode frame to JPEG -> Base64
+                _, buffer = cv2.imencode('.jpg', frame_resized)
+                base64_image = base64.b64encode(buffer).decode('utf-8')
+
+                payload = {
+                    "api_key": CONFIG['roboflow']['api_key'],
+                    "inputs": {
+                        "image": {"type": "base64", "value": base64_image}
+                    }
+                    # Add other workflow inputs here if needed
+                }
+
+                start_time = time.time()
+                response = session.post(CONFIG['roboflow']['workflow_url'], json=payload)
+                end_time = time.time()
+                # print(f"Roboflow API response received in {end_time - start_time:.2f}s")
+
+                response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+                result = response.json()
+                # print("Workflow result:", result) # Debug: Print the result
+
+                # Process the result from direct API call
+                if result:
+                    # Update counts if available (adjust key names if needed)
+                    if 'count_objects' in result and 'value' in result['count_objects'] and isinstance(result['count_objects']['value'], dict):
+                         counts_data = result['count_objects']['value']
+                         traffic_counts = {
+                             'northbound': counts_data.get('northbound', traffic_counts['northbound']),
+                             'southbound': counts_data.get('southbound', traffic_counts['southbound']),
+                             'total': counts_data.get('total', traffic_counts['total'])
+                         }
+                         # print("Updated traffic counts:", traffic_counts) # Debug
+                    else:
+                        print("Warning: 'count_objects.value' not found or not a dict in response.")
+
+                    # Use visualization if available (adjust key names if needed)
+                    # Assuming visualization is a base64 encoded image string
+                    if 'annotated_image' in result and 'value' in result['annotated_image']:
+                        vis_base64 = result['annotated_image']['value']
+                        try:
+                            vis_bytes = base64.b64decode(vis_base64)
+                            vis_np = np.frombuffer(vis_bytes, dtype=np.uint8)
+                            processed_frame = cv2.imdecode(vis_np, cv2.IMREAD_COLOR)
+                            # Ensure dimensions match output writer
+                            if processed_frame.shape[0] != height or processed_frame.shape[1] != width:
+                                processed_frame = cv2.resize(processed_frame, (width, height))
+                        except Exception as decode_error:
+                            print(f"Warning: Error decoding visualization image: {decode_error}. Using original resized frame.")
+                            processed_frame = frame_resized # Fallback
+                    else:
+                        # print("No visualization in result. Using original resized frame.") # Debug
+                        processed_frame = frame_resized # Fallback if no visualization
+                else:
+                    print("Warning: Empty workflow result from API.")
+                    processed_frame = frame_resized # Fallback
+
+            except requests.exceptions.RequestException as http_error:
+                print(f"HTTP Error calling Roboflow workflow: {http_error}")
+                processed_frame = frame_resized # Use original frame on error
+            except Exception as rf_error:
+                print(f"Error processing Roboflow workflow response: {rf_error}")
+                processed_frame = frame_resized # Use original frame on error
+
+            # Update current frame for the feed and write to output file
+            current_frame = processed_frame
+            if current_frame is not None:
+                 out.write(current_frame)
+            else:
+                 print("Warning: current_frame is None, cannot write to output.")
+                 current_frame = frame_resized # Ensure current_frame is not None for the feed
+
             # Control frame rate (yield control to event loop)
-            await asyncio.sleep(0)
+            await asyncio.sleep(0) # Yield control to event loop
             
     except Exception as e:
-        print(f"Error in video processing: {e}")
+        print(f"Error in video processing loop: {e}")
     finally:
-        if 'cap' in locals():
+        if 'cap' in locals() and cap.isOpened():
             cap.release()
+            print("Video capture released.")
         if 'out' in locals():
             out.release()
+            print("Video writer released.")
+        # client = None # Clear client? Or keep for subsequent runs?
 
 @app.get("/")
 async def root():
@@ -255,8 +290,13 @@ async def stop_processing():
 
 async def start_video_processing():
     """Start the video processing task"""
-    global processing_task
-    processing_task = asyncio.create_task(process_video())
+    global processing_task, stop_processing
+    stop_processing = False
+    if processing_task is None or processing_task.done():
+        print("Starting video processing task...")
+        processing_task = asyncio.create_task(process_video())
+    else:
+        print("Video processing task already running.")
 
 def run_server():
     """Run the FastAPI server with video processing"""
